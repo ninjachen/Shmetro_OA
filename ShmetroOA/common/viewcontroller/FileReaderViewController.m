@@ -1,0 +1,188 @@
+//
+//  FileReaderViewController.m
+//  ShmetroOA
+//
+//  Created by caven shen on 11/7/12.
+//
+//
+
+#import "FileReaderViewController.h"
+#import "ASIFormDataRequest.h"
+#import "ASIHTTPRequest.h"
+#import "ASINetworkQueue.h"
+#import "AttachFileInfoDao.h"
+@interface FileReaderViewController ()
+-(void)downloadFile;
+@end
+
+@implementation FileReaderViewController
+@synthesize webview;
+@synthesize fileInfo;
+@synthesize progressView;
+@synthesize view_download,audioPlayer;
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        self = [super initWithNibName:@"FileReaderViewController_iPhone" bundle:nil];
+    } else {
+        self = [super initWithNibName:@"FileReaderViewController_iPad" bundle:nil];
+    }
+    if (self) {
+        // Custom initialization
+    }
+    return self;
+}
+-(id)init:(AttachFileInfo *)attachFileInfo{
+    self = [super init];
+    if (self) {
+        self.fileInfo = attachFileInfo;
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+    [self showAttachFile];
+    }
+
+-(void)showAttachFile{
+    if (fileInfo.localPath!=nil&&![fileInfo.localPath isEqualToString:@"null"]&&![fileInfo.localPath isEqualToString:@""]) {
+        if ([[fileInfo.fileExtName lowercaseString] isEqualToString:@"caf"]||[[fileInfo.fileExtName lowercaseString] isEqualToString:@"aac"]) {
+          //  [self playRecordFile];
+            NSURL* baseUrl = [NSURL fileURLWithPath:[[NSBundle mainBundle] bundlePath]];
+            NSString* htmlstr = [NSString stringWithFormat:@"<!DOCTYPE HTML><html><body style='margin:0px; padding:0px; background-color:#000000;'><video autoplay='autoplay' width='650px' height='100px' controls='controls'  src='%@'/></body></html>",fileInfo.localPath];
+            [webview setMediaPlaybackRequiresUserAction:NO];
+            [webview loadHTMLString:htmlstr baseURL:baseUrl];
+          //   [webview loadRequest:[NSURLRequest requestWithURL:[NSURL fileURLWithPath:fileInfo.localPath]]];
+        }else if([[fileInfo.fileExtName lowercaseString]isEqualToString:@"txt"] ||[[fileInfo.fileExtName lowercaseString]isEqualToString:@"log"]){
+            [self showTxtFile];
+        }else{
+            [webview loadRequest:[NSURLRequest requestWithURL:[NSURL fileURLWithPath:fileInfo.localPath]]];
+        }
+    }else{
+        [self downloadFile];
+    }
+
+}
+-(void)playRecordFile{
+    self.audioPlayer= [[[AVAudioPlayer alloc] initWithContentsOfURL:[NSURL fileURLWithPath:self.fileInfo.localPath] error:nil] autorelease];
+    audioPlayer.volume = 1.0;
+    audioPlayer.numberOfLoops= 0;
+    audioPlayer.delegate = self;
+    if(audioPlayer!= nil){
+        [[AVAudioSession sharedInstance] setCategory: AVAudioSessionCategoryPlayAndRecord error: nil];
+        [audioPlayer play];
+    }
+}
+
+-(void)showTxtFile{
+    NSURL * txtUrl = [NSURL fileURLWithPath:fileInfo.localPath];
+    NSString *txtData = [NSString stringWithContentsOfURL:txtUrl encoding:NSUTF8StringEncoding error:nil];
+//    if (txtData != nil) {
+//        NSStringEncoding * encoding = CFStringConvertEncodingToNSStringEncoding(kCFStringEncodingGB_18030_2000);
+//        txtData = [NSString stringWithContentsOfURL:txtUrl encoding:encoding error:nil];
+//    }
+    if (txtData == nil) {
+        [webview setScalesPageToFit:NO];
+        [webview loadData:[NSData dataWithContentsOfURL:txtUrl] MIMEType:@"text/plain" textEncodingName:@"GB2312" baseURL:nil];
+    }else{
+        
+          [webview loadRequest:[NSURLRequest requestWithURL:txtUrl]];
+    }
+}
+- (void)viewDidUnload
+{
+    [self setWebview:nil];
+    [self setProgressView:nil];
+    [self setView_download:nil];
+    [super viewDidUnload];
+    // Release any retained subviews of the main view.
+}
+
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        return (interfaceOrientation == UIInterfaceOrientationPortraitUpsideDown)||(interfaceOrientation == UIInterfaceOrientationPortrait);
+    } else {
+        return (interfaceOrientation == UIInterfaceOrientationLandscapeLeft)||(interfaceOrientation == UIInterfaceOrientationLandscapeRight);
+    }
+}
+
+- (void)dealloc {
+    [webview release];
+    [fileInfo release];
+    [progressView release];
+    [view_download release];
+    [audioPlayer release];
+    [super dealloc];
+}
+
+- (IBAction)action_close:(id)sender {
+    [self dismissModalViewControllerAnimated:YES];
+}
+
+#pragma mark - UIWebViewDelegate
+- (void)webViewDidStartLoad:(UIWebView *)webView{
+    
+}
+- (void)webViewDidFinishLoad:(UIWebView *)webView{
+    
+}
+- (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error{
+//    if (error.code != 204) {
+        UIAlertView *alert = [[UIAlertView alloc]initWithTitle:@"载入失败" message:@"载入文件失败,请稍后再试" delegate:nil     cancelButtonTitle:@"确认" otherButtonTitles:nil, nil];
+        [alert show];
+  // }
+}
+
+#pragma mark - privateMethod
+-(void)downloadFile{
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSString *downPath = [NSHomeDirectory()
+                          stringByAppendingPathComponent:@"Documents/down"];
+    if (![fm fileExistsAtPath:downPath]){
+        [fm createDirectoryAtPath:downPath attributes:nil];
+    }
+    
+    NSString *localPath = [NSString stringWithFormat:@"%@/%@.%@",downPath,fileInfo.fileName,fileInfo.fileExtName];
+
+    ASIHTTPRequest *request= [[ASIHTTPRequest alloc] initWithURL:[NSURL URLWithString:[fileInfo.downloadUrl stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding]]];
+    [request setTemporaryFileDownloadPath:[NSString stringWithFormat:@"%@.tmp",localPath]];
+    [request setDelegate:self];
+    [request setDownloadProgressDelegate:self.progressView];
+    [request setDidFinishSelector:@selector(downloadComplete:)];
+    [request setDidFailSelector:@selector(downloadFailed:)];
+    [request setDownloadDestinationPath:localPath];
+    [request setTimeOutSeconds:60];
+    fileInfo.localPath = localPath;
+    [request startAsynchronous];
+    [view_download setHidden:NO];
+}
+
+- (void)downloadComplete:(ASIHTTPRequest *)request{
+    AttachFileInfoDao *dao = [[AttachFileInfoDao alloc]init];
+    [dao updateTodo:fileInfo];
+    [dao release];
+    [view_download setHidden:YES];
+    [self showAttachFile];
+//    if ([[fileInfo.fileExtName lowercaseString] isEqualToString:@".caf"]||[[fileInfo.fileExtName lowercaseString] isEqualToString:@".aac"]) {
+//        [self playRecordFile];
+//    }else{     
+//        NSURL *url = [NSURL fileURLWithPath:fileInfo.localPath];
+//        NSURLRequest *request = [NSURLRequest requestWithURL:url];
+//        [webview loadRequest:request];
+//        //[webview loadRequest:[NSURLRequest requestWithURL:[NSURL fileURLWithPath:fileInfo.localPath]]];
+//    }
+    
+}
+
+- (void)downloadFailed:(ASIHTTPRequest *)request{
+    [view_download setHidden:YES];
+    [fileInfo setLocalPath:@""];
+    UIAlertView *alert = [[UIAlertView alloc]initWithTitle:@"下载失败" message:@"下载文件失败,请稍后再试" delegate:nil cancelButtonTitle:@"确认" otherButtonTitles:nil, nil];
+    [alert show];
+    [alert release];
+}
+
+@end

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>PreferenceSpecifiers</key>
+	<array>
+		<dict>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+			<key>Title</key>
+			<string>配置工作流地址</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSTextFieldSpecifier</string>
+			<key>Title</key>
+			<string>工作流地址</string>
+			<key>DefaultValue</key>
+			<string>10.1.40.202</string>
+			<key>Key</key>
+			<string>workflow_perference</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSTextFieldSpecifier</string>
+			<key>Title</key>
+			<string>端口号</string>
+			<key>DefaultValue</key>
+			<string>8088</string>
+			<key>Key</key>
+			<string>workflow_port</string>
+		</dict>
+		<dict>
+			<key>Title</key>
+			<string>配置服务地址</string>
+			<key>Type</key>
+			<string>PSGroupSpecifier</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSTextFieldSpecifier</string>
+			<key>Title</key>
+			<string>服务器地址</string>
+			<key>DefaultValue</key>
+			<string>10.1.40.202</string>
+			<key>Key</key>
+			<string>server_preference</string>
+		</dict>
+		<dict>
+			<key>Type</key>
+			<string>PSTextFieldSpecifier</string>
+			<key>Title</key>
+			<string>端口号</string>
+			<key>DefaultValue</key>
+			<string>8088</string>
+			<key>Key</key>
+			<string>port_preference</string>
+		</dict>
+	</array>
+	<key>StringsTable</key>
+	<string>Root</string>
+</dict>
+</plist>

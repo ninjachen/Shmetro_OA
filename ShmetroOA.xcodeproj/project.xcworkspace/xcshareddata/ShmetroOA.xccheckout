@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>81DE7768-2A6A-464E-ACCE-87CBD78DFFA4</string>
+	<key>IDESourceControlProjectName</key>
+	<string>ShmetroOA</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>792B281C-7AE0-4D30-B91E-0DDC5AB8EE30</key>
+		<string>svn://gissvn/projects2013/%E7%94%B3%E9%80%9AOA2013/code/Shmetro_OA</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>ShmetroOA.xcodeproj/project.xcworkspace</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>792B281C-7AE0-4D30-B91E-0DDC5AB8EE30</key>
+		<string>../..</string>
+	</dict>
+	<key>IDESourceControlProjectRepositoryRootDictionary</key>
+	<dict>
+		<key>792B281C-7AE0-4D30-B91E-0DDC5AB8EE30</key>
+		<string>svn://gissvn</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>svn://gissvn/projects2013/%E7%94%B3%E9%80%9AOA2013/code/Shmetro_OA/ShmetroOA.xcodeproj</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>110</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>792B281C-7AE0-4D30-B91E-0DDC5AB8EE30</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.subversion</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>792B281C-7AE0-4D30-B91E-0DDC5AB8EE30</string>
+			<key>IDESourceControlWCCName</key>
+			<string>Shmetro_OA</string>
+		</dict>
+	</array>
+</dict>
+</plist>

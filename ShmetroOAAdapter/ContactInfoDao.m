@@ -1,0 +1,376 @@
+//
+//  ContactInfoDao.m
+//  ShmetroOA
+//
+//  Created by gisteam on 6/7/13.
+//
+//
+
+#import "ContactInfoDao.h"
+#import "SystemContext.h"
+#include "JSON.h"
+#import "NSString+SBJSON.h"
+#define TABLE_NAME @"contactinfo"
+
+@interface ContactInfoDao(PrivateMethods)
+-(BOOL)containsKey:(NSString *)uid;
+-(void)setContactInfoProp:(FMResultSet *)rs ContactInfo:(ContactInfo *)contactInfo;
+@end
+
+@implementation ContactInfoDao
+
+-(BOOL)insert:(ContactInfo *)contactInfo
+{
+    if (![self containsKey:contactInfo.uid]) {
+//        if (![db open]) {
+//            NSLog(@"Could not open db: insert");
+//            return NO;
+//        }
+        [db executeUpdate:[self SQL:@"INSERT INTO %@ (uid,loginName,name,email,mobile1,mobile2,fax,phone,cphone,company,dept) VALUES(?,?,?,?,?,?,?,?,?,?,?) " inTable:TABLE_NAME],contactInfo.uid,contactInfo.loginName,contactInfo.name,contactInfo.email,contactInfo.mobile1,contactInfo.mobile2,contactInfo.fax,contactInfo.phone,contactInfo.cphone,contactInfo.company,contactInfo.dept];
+        if ([db hadError]) {
+            NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+         //   [db close];
+            return NO;
+        }
+      //  [db close];
+    }else
+    {
+        [self update:contactInfo];
+    }
+    return YES;
+}
+-(BOOL)update:(ContactInfo *)contactInfo{
+    NSMutableDictionary *updateDictionary = [[NSMutableDictionary alloc]init];
+    if ((NSNull*)contactInfo.loginName !=[NSNull null] && ![contactInfo.loginName isEqualToString:@""]) {
+        [updateDictionary setValue:contactInfo.loginName forKey:@"loginName"];
+    }
+    if ((NSNull*)contactInfo.name !=[NSNull null] && ![contactInfo.name isEqualToString:@""]) {
+        [updateDictionary setValue:contactInfo.name forKey:@"name"];
+    }
+    if ((NSNull*)contactInfo.email !=[NSNull null] && ![contactInfo.email isEqualToString:@""]) {
+        [updateDictionary setValue:contactInfo.email forKey:@"email"];
+    }
+    if ((NSNull*)contactInfo.mobile1 !=[NSNull null] && ![contactInfo.mobile1 isEqualToString:@""]) {
+        [updateDictionary setValue:contactInfo.mobile1 forKey:@"mobile1"];
+    }
+    if ((NSNull*)contactInfo.mobile2 !=[NSNull null]&& ![contactInfo.mobile2 isEqualToString:@""]) {
+        [updateDictionary setValue:contactInfo.mobile2 forKey:@"mobile2"];
+    }
+    if ((NSNull*)contactInfo.fax !=[NSNull null] && ![contactInfo.fax isEqualToString:@""]) {
+        [updateDictionary setValue:contactInfo.fax forKey:@"fax"];
+    }
+    if ((NSNull*)contactInfo.phone !=[NSNull null] && ![contactInfo.phone isEqualToString:@"phone"]) {
+        [updateDictionary setValue:contactInfo.phone forKey:@"phone"];
+    }
+    if ((NSNull*)contactInfo.cphone !=[NSNull null] && ![contactInfo.cphone isEqualToString:@""]) {
+        [updateDictionary setValue:contactInfo.cphone forKey:@"cphone"];
+    }
+    if ((NSNull*)contactInfo.company !=[NSNull null] && ![contactInfo.company isEqualToString:@""]) {
+        [updateDictionary setValue:contactInfo.company forKey:@"company"];
+    }
+    if ((NSNull*)contactInfo.dept !=[NSNull null] && ![contactInfo.dept isEqualToString:@""]) {
+        [updateDictionary setValue:contactInfo.dept forKey:@"dept"];
+    }
+    
+    NSString *fieldString = @"";
+    NSString *key;
+    for (int i=0; i<updateDictionary.allKeys.count; i++) {
+        key = [updateDictionary.allKeys objectAtIndex:i];
+        if (i==0) {
+            fieldString = [NSString stringWithFormat:@"%@=?",key];
+        }else{
+            fieldString =  [NSString stringWithFormat:@"%@,%@=?",fieldString,key];
+        }
+    }
+    
+    NSMutableArray *fieldValues=[[NSMutableArray alloc]initWithArray:[updateDictionary allValues]];
+    [fieldValues addObject:contactInfo.uid];
+    [updateDictionary release];
+    NSString *updateSql=[NSString stringWithFormat:@"UPDATE %@ SET %@ WHERE uid=?",TABLE_NAME,fieldString];
+    
+//    if (![db open]) {
+//        NSLog(@"Could not open db: update");
+//        return NO;
+//    }
+    
+    [db executeQuery:updateSql withArgumentsInArray:fieldValues];
+    [fieldValues release];
+    if ([db hadError]) {
+        NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+    //    [db close];
+        return NO;
+    }
+
+   // [db close];
+    return YES;
+}
+
+-(BOOL)deleteAllContacts{
+//    if (![db open]) {
+//        NSLog(@"Could not open db: deletaAllContacts");
+//        return NO;
+//    }
+    
+    [db executeUpdate:[self SQL:@"DELETE FROM  %@" inTable:TABLE_NAME]];
+    if ([db hadError]) {
+        NSLog(@"Err %d:%@",[db lastErrorCode],[db lastErrorMessage]);
+       // [db close];
+        return NO;
+    }
+    
+    //[db close];
+    return YES;
+}
+
+-(BOOL)delete:(NSString *)uid{
+     return YES;
+}
+-(NSMutableArray *)queryAllContactByDept:(NSString *)dept{
+//    if (![db open]) {
+//        NSLog(@"Could not open db: queryAllContactByDept");
+//        return NO;
+//    }
+    
+    NSMutableArray *contactArray = [[[NSMutableArray alloc]init]autorelease];
+//    NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@ WHERE dept LIKE '%%%@%%'",TABLE_NAME,dept];
+//    FMResultSet *contactResultSet = [db executeQuery:sql];
+    FMResultSet *contactResultSet = [db executeQuery:[self SQL:@"SELECT * FROM %@ WHERE dept =?" inTable:TABLE_NAME],dept];
+    while ([contactResultSet next]) {
+        ContactInfo *contactInfo = [[ContactInfo alloc]init];
+        [self setContactInfoProp:contactResultSet ContactInfo:contactInfo];
+        
+        [contactArray addObject:contactInfo];
+        [contactInfo release];
+    }
+    
+    [contactResultSet close];
+   // [db close];
+    return contactArray;
+}
+-(NSMutableArray *)queryContactByDept:(NSString *)searchText{
+//    if (![db open]) {
+//        NSLog(@"Could not open db: queryContactByDept");
+//        return NO;
+//    }
+    NSMutableArray *contactArray = [[[NSMutableArray alloc]init]autorelease];
+    NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@ WHERE dept LIKE '%%%@%%'",TABLE_NAME,searchText];
+    FMResultSet *contactResultSet = [db executeQuery:sql];
+    while ([contactResultSet next]) {
+        ContactInfo *contactInfo = [[ContactInfo alloc]init];
+        [self setContactInfoProp:contactResultSet ContactInfo:contactInfo];
+        
+        [contactArray addObject:contactInfo];
+        [contactInfo release];
+    }
+    
+    [contactResultSet close];
+   //[db close];
+    return contactArray;
+}
+-(NSMutableArray *)queryContactByName:(NSString *)searchText{
+//    if (![db open]) {
+//        NSLog(@"Could not open db: queryContactByName");
+//        return NO;
+//    }
+    
+    NSMutableArray *contactArray = [[[NSMutableArray alloc]init]autorelease];
+    NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@ WHERE name LIKE '%%%@%%'",TABLE_NAME,searchText];
+    FMResultSet *contactResultSet = [db executeQuery:sql];
+    while ([contactResultSet next]) {
+        ContactInfo *contactInfo = [[ContactInfo alloc]init];
+        [self setContactInfoProp:contactResultSet ContactInfo:contactInfo];
+        
+        [contactArray addObject:contactInfo];
+        [contactInfo release];
+    }
+    
+    [contactResultSet close];
+   // [db close];
+    return contactArray;
+}
+-(ContactInfo *)getContactByUid:(NSString *)uid{
+//    if (![db open]) {
+//        NSLog(@"Could not open db: getContactByUid");
+//        return NO;
+//    }
+    
+    ContactInfo *contactInfo = nil;
+    FMResultSet *rs = [db executeQuery:[self SQL:@"SELECT * FROM %@ WHERE uid=?" inTable:TABLE_NAME],uid];
+    while ([rs next]) {
+        contactInfo = [[[ContactInfo alloc]init]autorelease];
+        [self setContactInfoProp:rs ContactInfo:contactInfo];
+    }
+    
+    [rs close];
+    //[db close];
+    return contactInfo;    
+}
+
+-(ContactInfo *)getContactByLoginName:(NSString *)loginName{
+//    if (![db open]) {
+//        NSLog(@"Could not open db: getContactByLoginName");
+//        return NO;
+//    }
+    ContactInfo *contactInfo = nil;
+    FMResultSet *rs = [db executeQuery:[self SQL:@"SELECT * FROM %@ WHERE loginName=?" inTable:TABLE_NAME],loginName];
+    while ([rs next]) {
+        contactInfo = [[[ContactInfo alloc]init]autorelease];
+        [self setContactInfoProp:rs ContactInfo:contactInfo];
+    }
+    
+    [rs close];
+   // [db close];
+    return contactInfo;
+}
+
+-(BOOL)containsKey:(NSString *)uid{
+    if (uid==nil) {
+        return NO;
+    }
+//    
+//    if (![db open]) {
+//        NSLog(@"Could not open db: containsKey");
+//        return NO;
+//    }
+    
+    FMResultSet *rs = [db executeQuery:[self SQL:@"SELECT * FROM %@	WHERE uid=?" inTable:TABLE_NAME],uid];
+    while ([rs next]) {
+        [rs close];
+        return YES;
+    }
+    [rs close];
+    //[db close];
+    return NO;
+}
+-(void)setContactInfoProp:(FMResultSet *)rs ContactInfo:(ContactInfo *)contactInfo{
+    contactInfo.uid = [rs stringForColumn:@"uid"];
+    contactInfo.loginName = [rs stringForColumn:@"loginName"];
+    contactInfo.name = [rs stringForColumn:@"name"];
+    contactInfo.email = [rs stringForColumn:@"email"];
+    contactInfo.mobile1 = [rs stringForColumn:@"mobile1"];
+    contactInfo.mobile2 = [rs stringForColumn:@"mobile2"];
+    contactInfo.fax = [rs stringForColumn:@"fax"];
+    contactInfo.phone = [rs stringForColumn:@"phone"];
+    contactInfo.cphone = [rs stringForColumn:@"cphone"];
+    contactInfo.company = [rs stringForColumn:@"company"];
+    contactInfo.dept = [rs stringForColumn:@"dept"];
+    //contactInfo.removed = [rs stringForColumn:@"removed"];
+}
+/*
+-(void)saveContactFromJsonValue:(id)jsonObj{
+    if (jsonObj!=nil && [jsonObj valueForKey:@"code"]) {
+        NSString *code = [jsonObj valueForKey:@"code"];
+        NSString *description = @"";
+        if ([jsonObj valueForKey:@"description"]) {
+            description = [jsonObj valueForKey:@"description"];
+        }
+        
+        if ([[SystemContext singletonInstance]processHttpResponseCode:code Desc:description]) {
+            if ([jsonObj valueForKey:@"params"]) {
+                id paramArray = [jsonObj valueForKey:@"params"];
+                if ([[paramArray class]isSubclassOfClass:[NSArray class]]) {
+                    if (paramArray!=nil && [paramArray count]>0) {
+                        for (int i=0; i<[paramArray count]; i++) {
+                            SBJsonWriter *paramObj = [paramArray objectAtIndex:i];
+                            ContactInfo *contactInfo = [[ContactInfo alloc]init];
+                            if ([paramObj valueForKey:@"id"]) {
+                                 contactInfo.uid = [paramObj valueForKey:@"id"];
+                            }
+                            if ([paramObj valueForKey:@"loginName"]) {
+                                contactInfo.loginName = [paramObj valueForKey:@"loginName"];
+                            }
+                            if ([paramObj valueForKey:@"name"]) {
+                                contactInfo.name = [paramObj valueForKey:@"name"];
+                            }
+                            if ([paramObj valueForKey:@"email"]) {
+                                contactInfo.email =[paramObj valueForKey:@"email"];
+                            }
+                            if ([paramObj valueForKey:@"mobile1"]) {
+                                contactInfo.mobile1 = [paramObj valueForKey:@"mobile1"];
+                            }
+                            if ([paramObj valueForKey:@"mobile2"]) {
+                                contactInfo.mobile2 =[paramObj valueForKey:@"mobile2"];
+                            }
+                            if ([paramObj valueForKey:@"phone"]) {
+                                    contactInfo.phone = [paramObj valueForKey:@"phone"];
+                            }
+                            if ([paramObj valueForKey:@"cphone"]) {
+                                    contactInfo.cphone =[paramObj valueForKey:@"cphone"];
+                            }
+                            if ([paramObj valueForKey:@"company"]) {
+                                contactInfo.company = [paramObj valueForKey:@"company"];
+                            }
+                            if ([paramObj valueForKey:@"dept"]) {
+                                contactInfo.dept = [paramObj valueForKey:@"dept"];
+                            }   
+                    
+                        [self insert:contactInfo];
+                        [contactInfo release];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+ */
+
+-(void)saveContactFromJsonValue:(id)jsonObj clearContacts:(BOOL)isClear{
+    if (jsonObj!=nil && [jsonObj valueForKey:@"code"]) {
+        NSString *code = [jsonObj valueForKey:@"code"];
+        
+       if ([[SystemContext singletonInstance]processHttpResponseCode:code]) {
+            if ([jsonObj valueForKey:@"result"]) {
+                id paramArray = [jsonObj valueForKey:@"result"];
+                if ([[paramArray class]isSubclassOfClass:[NSArray class]]) {
+                    if (paramArray!=nil && [paramArray count]>0) {
+                        if (isClear) {
+                            [self deleteAllContacts];//清空通讯录表格
+                        }
+
+                        for (int i=0; i<[paramArray count]; i++) {
+                            SBJsonWriter *paramObj = [paramArray objectAtIndex:i];
+                            ContactInfo *contactInfo = [[ContactInfo alloc]init];
+                            if ([paramObj valueForKey:@"id"]) {
+                                NSNumberFormatter* numberFormatter = [[NSNumberFormatter alloc] init];
+                                contactInfo.uid = [numberFormatter stringFromNumber:[paramObj valueForKey:@"id"]];
+                                [numberFormatter release];
+                            }
+                            if ([paramObj valueForKey:@"loginName"]) {
+                                contactInfo.loginName = [paramObj valueForKey:@"loginName"];
+                            }
+                            if ([paramObj valueForKey:@"name"]) {
+                                contactInfo.name = [paramObj valueForKey:@"name"];
+                            }
+                            if ([paramObj valueForKey:@"email"]) {
+                                contactInfo.email =[paramObj valueForKey:@"email"];
+                            }
+                            if ([paramObj valueForKey:@"mobile1"]) {
+                                contactInfo.mobile1 = [paramObj valueForKey:@"mobile1"];
+                            }
+                            if ([paramObj valueForKey:@"mobile2"]) {
+                                contactInfo.mobile2 =[paramObj valueForKey:@"mobile2"];
+                            }
+                            if ([paramObj valueForKey:@"phone"]) {
+                                contactInfo.phone = [paramObj valueForKey:@"phone"];
+                            }
+                            if ([paramObj valueForKey:@"cphone"]) {
+                                contactInfo.cphone =[paramObj valueForKey:@"cphone"];
+                            }
+                            if ([paramObj valueForKey:@"company"]) {
+                                contactInfo.company = [paramObj valueForKey:@"company"];
+                            }
+                            if ([paramObj valueForKey:@"dept"]) {
+                                contactInfo.dept = [paramObj valueForKey:@"dept"];
+                            }
+                            
+                            [self insert:contactInfo];
+                            [contactInfo release];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+@end
