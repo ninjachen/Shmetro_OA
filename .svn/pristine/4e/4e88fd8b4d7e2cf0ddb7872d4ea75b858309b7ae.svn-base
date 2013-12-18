@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SchemeUserState</key>
+	<dict>
+		<key>IPosAdapter.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>3</integer>
+		</dict>
+		<key>ShmetroOA.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>0</integer>
+		</dict>
+		<key>ShmetroOAAdapter.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>1</integer>
+		</dict>
+		<key>W3StudioLib.xcscheme</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>840971FA15F9EFCF000A9767</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>84D02C5D15F47E4500F9E74A</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>84D02C8515F47EC500F9E74A</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>84D02C9415F47EEA00F9E74A</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+	</dict>
+</dict>
+</plist>

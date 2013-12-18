@@ -1,0 +1,87 @@
+//
+//  TodoInfo.m
+//  ShmetroOA
+//
+//  Created by  on 12-9-10.
+//  Copyright (c) 2012年 __MyCompanyName__. All rights reserved.
+//
+
+#import "TodoInfo.h"
+#import "STOService.h"
+#import "AppDelegate.h"
+@implementation TodoInfo
+@synthesize todoId,app,key,data,title,status,userId,removed,todoType,loginName,occurTime,deptId;
+@synthesize applyApprovedArr,subApprovedArr,backApplyApprovedArr;
+@synthesize instanceId;
+@synthesize attachmentFileArr;
+@synthesize steplabel,uploadfilegroupid;
+@synthesize initiatorName,createDeptName,contentAttachmentId,processname,createDeptid,operateDate,operateName,operateUser,contactDate,incidentno,mainUnitId,updateTime,initiator,replyDate,startTime,copyUnitId,mainUnit,timeDiff,copyUnit,serial,content,theme,recordPath,processFlag,processText;
+-(NSMutableDictionary *)getTodoInfoDic{
+    NSMutableDictionary *respDic = [[[NSMutableDictionary alloc]init] autorelease];
+    [respDic setValue:mainUnit==nil?@" ":mainUnit forKey:@"主送部门"];
+    [respDic setValue:copyUnit==nil?@" ":copyUnit forKey:@"抄送部门"];
+    [respDic setValue:theme==nil?@" ":theme forKey:@"主题"];
+    [respDic setValue:contactDate==nil?@" ":contactDate forKey:@"联系时间"];
+    [respDic setValue:replyDate==nil?@" ":replyDate forKey:@"要求回复时间"];
+    [respDic setValue:content==nil?@" ":content forKey:@"联系内容"];
+    [respDic setValue:initiatorName==nil?@" ":initiatorName forKey:@"发起人"];
+    [respDic setValue:createDeptName==nil?@" ":createDeptName forKey:@"发起部门"];
+    return respDic;
+}
+-(NSArray *)getContentAttachmentFileArr{
+    if (attachmentFileArr==nil||[attachmentFileArr count]==0) {
+        STOService *service = [[STOService alloc]init];
+        self.attachmentFileArr = [service searchAttachFileList:self.contentAttachmentId];
+        [service release];
+    }
+    return self.attachmentFileArr;
+}
+-(void)dealloc{
+    [attachmentFileArr release];
+    [todoId release];
+    [app release];
+    [key release];
+    [data release];
+    [title release];
+    [status release];
+    [userId release];
+    [removed release];
+    [todoType release];
+    [loginName release];
+    [occurTime release];
+    [deptId release];
+    [initiatorName release];
+    [createDeptName release];
+    [contentAttachmentId release];
+    [processname release];
+    [createDeptid release];
+    [operateDate release];
+    [operateName release];
+    [operateUser release];
+    [contactDate release];
+    [incidentno release];
+    [mainUnitId release];
+    [updateTime release];
+    [initiator release];
+    [replyDate release];
+    [startTime release];
+    [copyUnitId release];
+    [mainUnit release];
+    [timeDiff release];
+    [copyUnit release];
+    [serial release];
+    [content release];
+    [theme release];
+    [applyApprovedArr release];
+    [subApprovedArr release];
+    [backApplyApprovedArr release];
+    [instanceId release];
+    [recordPath release];
+    [processFlag release];
+    [processText release];
+    [steplabel release];
+    [uploadfilegroupid release];
+    [super dealloc];
+}
+
+@end

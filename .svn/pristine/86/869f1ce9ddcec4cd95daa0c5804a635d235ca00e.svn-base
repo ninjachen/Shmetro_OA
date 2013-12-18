@@ -1,0 +1,36 @@
+//
+//  TodoListViewController.h
+//  ShmetroOA
+//
+//  Created by caven shen on 10/10/12.
+//
+//
+
+#import <UIKit/UIKit.h>
+#import "ShmetroOADelegate.h"
+#import "IPhone_TodoDetailTabViewController.h"
+#import "STableViewController.h"
+@interface TodoListViewController : STableViewController<UITableViewDelegate,UITableViewDataSource,UITableViewDataSource,UITableViewDelegate,UIPickerViewDataSource,UIPickerViewDelegate>
+//@property (retain, nonatomic) IBOutlet UITableView *tableview;
+@property (nonatomic,retain) NSArray *todoInfoArr;
+@property (nonatomic,retain) NSArray *todoTypeArr;
+@property (nonatomic,retain) NSArray *todoTypeParamArr;
+@property (retain, nonatomic) IBOutlet UIView *view_loading;
+@property (nonatomic, assign) id<MainViewControllerDelegate> mainViewDelegate;
+@property (nonatomic, assign) id<TabbarViewControllerDelegate> tabbarDelegate;
+@property (retain,nonatomic) IPhone_TodoDetailTabViewController *iphoneDetailTabViewController;
+@property (retain,nonatomic) UIPickerView *typePickView;
+@property (retain,nonatomic) UIPopoverController *typePopoverController;
+@property(nonatomic,retain)NSString *oldTodoId;
+-(void)refreshData:(BOOL)clearOld;
+-(void)refreshTodoListWithType;
+-(void)refreshData:(BOOL)clearOld WithType:(NSString *)typeName;
+
+- (IBAction)action_iphone_back:(id)sender;
+- (IBAction)action_iphone_search:(id)sender;
+- (IBAction)changeTypeAction:(id)sender;
+@property (retain, nonatomic) IBOutlet UIView *typeBtn;
+@property (nonatomic) int currentTypeRow;
+@property (retain, nonatomic) IBOutlet UILabel *typeLabel;
+
+@end

@@ -1,0 +1,529 @@
+//
+//  MeetingDao.m
+//  ShmetroOA
+//
+//  Created by gisteam on 6/16/13.
+//
+//
+
+#import "MeetingDao.h"
+#import "MeetingInfo.h"
+#import "MeetingRoomInfo.h"
+#import "MeetingOrgInfo.h"
+#import "SystemContext.h"
+#include "JSON.h"
+#import "NSString+SBJSON.h"
+#import "DateUtil.h"
+#define MEETINGINFO_TABLE_NAME @"meetinginfo"
+#define MEETINGROOMINFO_TABLE_NAME @"meetingroominfo"
+#define MEETINGORGINFO_TABLE_NAME @"meetingorginfo"
+//#define MYMEETINGINFO_TABLE_NAME @"mymeetinginfo"
+//#define MEETINGOCCUPATIONINFO_TABLE_NAME @"meetingoccupationinfo"
+
+@interface MeetingDao(PrivateMethods)
+-(BOOL)containsKey:(NSString *)keyValue KeyWord:(NSString *)keyword InTable:(NSString *)tableName;
+-(void)setMeetingInfoProp:(FMResultSet *)rs MeetingInfo:(MeetingInfo *)meetingInfo;
+-(void)setMeetingRoomInfoProp:(FMResultSet *)rs MeetingRoomInfo:(MeetingRoomInfo *)meetingRoomInfo;
+@end
+
+@implementation MeetingDao
+-(BOOL)insertMeetingInfo:(MeetingInfo *)meetingInfo{
+    if (![self containsKey:meetingInfo.meetId KeyWord:@"meetId" InTable:MEETINGINFO_TABLE_NAME]) {
+        [db executeUpdate:[self SQL:@"INSERT INTO %@ (mId,meetId,title,startDate,startTime,endTime,address,compere) VALUES (?,?,?,?,?,?,?,?) " inTable:MEETINGINFO_TABLE_NAME],meetingInfo.mId,meetingInfo.meetId,meetingInfo.title,meetingInfo.startDate,meetingInfo.startTime,meetingInfo.endTime,meetingInfo.address,meetingInfo.compere];
+        if ([db hadError]) {
+            NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+            return NO;
+        }
+    }else
+    {
+        [self updateMeetingInfo:meetingInfo];
+    }
+    return YES;
+}
+
+-(BOOL)updateMeetingInfo:(MeetingInfo *)meetingInfo{
+    NSMutableDictionary *updateDictionary = [[NSMutableDictionary alloc]init];
+    if (meetingInfo.title && ![meetingInfo.title isEqualToString:@""]) {
+        [updateDictionary setValue:meetingInfo.title forKey:@"title"];
+    }
+    if (meetingInfo.startDate && meetingInfo.startDate > 0) {
+        [updateDictionary setValue:meetingInfo.startDate forKey:@"startDate"];
+    }
+    if (meetingInfo.startTime && ![meetingInfo.startTime isEqualToString:@""]) {
+        [updateDictionary setValue:meetingInfo.startTime forKey:@"startTime"];
+    }
+    if (meetingInfo.endTime && ![meetingInfo.endTime isEqualToString:@""]) {
+        [updateDictionary setValue:meetingInfo.endTime forKey:@"endTime"];
+    }
+    if (meetingInfo.address && ![meetingInfo.address isEqualToString:@""]) {
+        [updateDictionary setValue:meetingInfo.address forKey:@"address"];
+    }
+    if (meetingInfo.compere && ![meetingInfo.compere isEqualToString:@""]) {
+        [updateDictionary setValue:meetingInfo.compere forKey:@"compere"];
+    }
+    if (meetingInfo.present && ![meetingInfo.present isEqualToString:@""]) {
+        [updateDictionary setValue:meetingInfo.present forKey:@"present"];
+    }
+    if (meetingInfo.presentOther && ![meetingInfo.presentOther  isEqualToString:@""]) {
+        [updateDictionary setValue:meetingInfo.presentOther forKey:@"presentOther"];
+    }
+    if (meetingInfo.topic && ![meetingInfo.topic isEqualToString:@""]) {
+        [updateDictionary setValue:meetingInfo.topic forKey:@"topic"];
+    }
+    if (meetingInfo.dept && ![meetingInfo.dept  isEqualToString:@""]) {
+        [updateDictionary setValue:meetingInfo.dept forKey:@"dept"];
+    }
+    if (meetingInfo.memo && ![meetingInfo.memo isEqualToString:@""]) {
+        [updateDictionary setValue:meetingInfo.memo forKey:@"memo"];
+    }
+    
+    NSString *fieldString = @"";
+    NSString *key;
+    for (int i=0; i<updateDictionary.allKeys.count; i++) {
+        key = [updateDictionary.allKeys objectAtIndex:i];
+        if (i==0) {
+            fieldString = [NSString stringWithFormat:@"%@=?",key];
+        }else{
+            fieldString =  [NSString stringWithFormat:@"%@,%@=?",fieldString,key];
+        }
+    }
+    
+    NSMutableArray *fieldValues=[[NSMutableArray alloc]initWithArray:[updateDictionary allValues]];
+    [fieldValues addObject:meetingInfo.meetId];
+    [updateDictionary release];
+    NSString *updateSql=[NSString stringWithFormat:@"UPDATE %@ SET %@ WHERE meetId=?",MEETINGINFO_TABLE_NAME,fieldString];
+    [db executeUpdate:updateSql withArgumentsInArray:fieldValues];
+    [fieldValues release];
+    if ([db hadError]) {
+        NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+        
+        return NO;
+    }
+    
+    
+    return YES;
+}
+
+-(BOOL)insertMeetingRoomInfo:(MeetingRoomInfo *)meetingRoomInfo{
+    if (![self containsKey:meetingRoomInfo.mrId KeyWord:@"mrId" InTable:MEETINGROOMINFO_TABLE_NAME]) {
+        [db executeUpdate:[self SQL:@"INSERT INTO %@ (mrId,address,equip,load,name,org) VALUES (?,?,?,?,?,?) " inTable:MEETINGROOMINFO_TABLE_NAME],meetingRoomInfo.mrId,meetingRoomInfo.address,meetingRoomInfo.equip,meetingRoomInfo.load,meetingRoomInfo.name,meetingRoomInfo.org];
+        if ([db hadError]) {
+            NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+            return NO;
+        }
+    }else
+    {
+        [self updateMeetingRoomInfo:meetingRoomInfo];
+    }
+    return YES;
+}
+
+-(BOOL)updateMeetingRoomInfo:(MeetingRoomInfo *)meetingRoomInfo{
+    NSMutableDictionary *updateDictionary = [[NSMutableDictionary alloc]init];
+    if (meetingRoomInfo.address && ![meetingRoomInfo.address isEqualToString:@""]) {
+        [updateDictionary setValue:meetingRoomInfo.address forKey:@"address"];
+    }
+    if (meetingRoomInfo.equip && ![meetingRoomInfo.equip isEqualToString:@""]) {
+        [updateDictionary setValue:meetingRoomInfo.equip forKey:@"equip"];
+    }
+    if (meetingRoomInfo.load && ![meetingRoomInfo.load isEqualToString:@""]) {
+        [updateDictionary setValue:meetingRoomInfo.load forKey:@"load"];
+    }
+    if (meetingRoomInfo.name && ![meetingRoomInfo.name isEqualToString:@""]) {
+        [updateDictionary setValue:meetingRoomInfo.name forKey:@"name"];
+    }
+    if (meetingRoomInfo.org && ![meetingRoomInfo.org isEqualToString:@""]) {
+        [updateDictionary setValue:meetingRoomInfo.org forKey:@"org"];
+    }
+    
+    NSString *fieldString = @"";
+    NSString *key;
+    for (int i=0; i<updateDictionary.allKeys.count; i++) {
+        key = [updateDictionary.allKeys objectAtIndex:i];
+        if (i==0) {
+            fieldString = [NSString stringWithFormat:@"%@=?",key];
+        }else{
+            fieldString =  [NSString stringWithFormat:@"%@,%@=?",fieldString,key];
+        }
+    }
+    
+    NSMutableArray *fieldValues=[[NSMutableArray alloc]initWithArray:[updateDictionary allValues]];
+    [fieldValues addObject:meetingRoomInfo.mrId];
+    [updateDictionary release];
+    NSString *updateSql=[NSString stringWithFormat:@"UPDATE %@ SET %@ WHERE mrId=?",MEETINGROOMINFO_TABLE_NAME,fieldString];
+    [db executeUpdate:updateSql withArgumentsInArray:fieldValues];
+    [fieldValues release];
+    if ([db hadError]) {
+        NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+        return NO;
+    }
+    
+    
+    return YES;
+
+}
+
+-(BOOL)insertMeetingOrgInfo:(MeetingOrgInfo *)meetingOrgInfo{
+    if (![self containsKey:meetingOrgInfo.orgId KeyWord:@"orgId" InTable:MEETINGORGINFO_TABLE_NAME]) {
+        [db executeUpdate:[self SQL:@"INSERT INTO %@ (orgId,name) VALUES (?,?) " inTable:MEETINGORGINFO_TABLE_NAME],meetingOrgInfo.orgId,meetingOrgInfo.name];
+        if ([db hadError]) {
+            NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+            return NO;
+        }
+    }else
+    {
+        [self updateMeetingOrgInfo:meetingOrgInfo];
+    }
+    return YES;
+}
+
+-(BOOL)updateMeetingOrgInfo:(MeetingOrgInfo *)meetingOrgInfo{       
+    NSString *updateSql=[NSString stringWithFormat:@"UPDATE %@ SET name=%@ WHERE orgId=%@",MEETINGROOMINFO_TABLE_NAME,meetingOrgInfo.name,meetingOrgInfo.orgId];
+    [db executeUpdate:updateSql];
+    if ([db hadError]) {
+        NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+        return NO;
+    }
+    
+    return YES;
+}
+
+
+-(MeetingInfo*)getMeetingById:(NSString *)mId{
+    MeetingInfo *meetingInfo = nil;
+    FMResultSet *rs = [db executeQuery:[self SQL:@"SELECT * FROM %@ WHERE mId=?" inTable:MEETINGINFO_TABLE_NAME],mId];
+    while ([rs next]) {
+        meetingInfo = [[[MeetingInfo alloc]init]autorelease];
+        [self setMeetingInfoProp:rs MeetingInfo:meetingInfo];
+    }
+    
+    [rs close];
+    return meetingInfo;
+}
+
+-(BOOL)deleteAllMeetingInfo{
+    [db executeUpdate:[self SQL:@"DELETE FROM  %@" inTable:MEETINGINFO_TABLE_NAME]];
+    if ([db hadError]) {
+        NSLog(@"Err %d:%@",[db lastErrorCode],[db lastErrorMessage]);
+        return NO;
+    }
+    
+    return YES;
+}
+
+-(NSMutableArray *)queryMeetingListByStartDate:(NSString *)startDate Org:(NSString*)org Adderss:(NSString *)address
+{
+    NSMutableArray *meetingInfoArr = [[[NSMutableArray alloc]init]autorelease];
+    FMResultSet *rs = [db executeQuery:[self SQL:@"SELECT * From %@ WHERE startDate=? and org=? and address=?" inTable:MEETINGINFO_TABLE_NAME],startDate,org,address];
+    while ([rs next]) {
+        MeetingInfo *meetingInfo = [[[MeetingInfo alloc]init]autorelease];
+        [self setMeetingInfoProp:rs MeetingInfo:meetingInfo];
+        [meetingInfoArr addObject:meetingInfo];
+    }
+    
+    return meetingInfoArr;
+}
+
+-(NSMutableArray *)queryMeetingListFromStartDate:(NSNumber *)startDate ToEndDate:(NSNumber *)endDate mrId:(NSString *)mrId{
+    double startDateValue = [startDate doubleValue];
+    double endDateValue = [endDate doubleValue];
+    NSMutableArray *meetingInfoArr = [[[NSMutableArray alloc]init]autorelease];
+    
+    NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@ WHERE address=%@ AND startDate BETWEEN %f AND %f",MEETINGINFO_TABLE_NAME,mrId,startDateValue,endDateValue];
+    FMResultSet *rs = [db executeQuery:sql];
+    while ([rs next]) {
+        MeetingInfo *meetingInfo = [[[MeetingInfo alloc]init]autorelease];
+        [self setMeetingInfoProp:rs MeetingInfo:meetingInfo];
+        [meetingInfoArr addObject:meetingInfo];
+    }
+    
+    return meetingInfoArr;
+}
+
+-(NSMutableArray *)queryMeetingListForName:(NSString *)name FromStartDate:(NSNumber *)startDate ToEndDate:(NSNumber *)endDate mrId:(NSString *)mrId{
+    double startDateValue = [startDate doubleValue];
+    double endDateValue = [endDate doubleValue];
+    NSMutableArray *meetingInfoArr = [[[NSMutableArray alloc]init]autorelease];
+    
+    NSString *sql = [NSString stringWithFormat:@"SELECT * FROM %@ WHERE address=%@ AND present LIKE '%%%@%%'  AND startDate BETWEEN %f AND %f",MEETINGINFO_TABLE_NAME,mrId,name,startDateValue,endDateValue];
+    FMResultSet *rs = [db executeQuery:sql];
+    while ([rs next]) {
+        MeetingInfo *meetingInfo = [[[MeetingInfo alloc]init]autorelease];
+        [self setMeetingInfoProp:rs MeetingInfo:meetingInfo];
+        [meetingInfoArr addObject:meetingInfo];
+    }
+    
+    return meetingInfoArr;
+}
+
+-(NSMutableDictionary *)queryAllOrg{
+    NSMutableDictionary *orgDict = [[[NSMutableDictionary alloc]init]autorelease];
+    FMResultSet *rs = [db executeQuery:[self SQL:@"SELECT * FROM %@" inTable:MEETINGORGINFO_TABLE_NAME]];
+    while ([rs next]) {
+        [orgDict setValue:[rs stringForColumn:@"name"] forKey:[rs stringForColumn:@"orgId"]];
+       //[orgArra addObject:[rs stringForColumn:@"name"]];
+    }
+    
+    return orgDict;
+}
+
+-(BOOL)deleteAllOrg{
+    [db executeUpdate:[self SQL:@"DELETE FROM  %@" inTable:MEETINGORGINFO_TABLE_NAME]];
+    if ([db hadError]) {
+        NSLog(@"Err %d:%@",[db lastErrorCode],[db lastErrorMessage]);
+        return NO;
+    }
+    
+    return YES;
+}
+
+-(NSMutableArray *)queryMeetingRoomByOrg:(NSString *)orgId{
+     NSMutableArray *meetingRoomInfoArr = [[[NSMutableArray alloc]init]autorelease];
+    NSString *sql = [NSString stringWithFormat:@"SELECT room.* FROM %@ AS room LEFT JOIN %@ AS org ON room.org=org.orgId WHERE org.orgId='%@'",MEETINGROOMINFO_TABLE_NAME,MEETINGORGINFO_TABLE_NAME,orgId];
+    FMResultSet *rs = [db executeQuery:sql];
+    while ([rs next]) {
+        MeetingRoomInfo *meetingRoomInfo = [[[MeetingRoomInfo alloc]init]autorelease];
+        [self setMeetingRoomInfoProp:rs MeetingRoomInfo:meetingRoomInfo];
+        [meetingRoomInfoArr addObject:meetingRoomInfo];
+    }
+    
+    return meetingRoomInfoArr;
+}
+
+-(BOOL)deleteMeetingRoom{
+    [db executeUpdate:[self SQL:@"DELETE FROM  %@" inTable:MEETINGROOMINFO_TABLE_NAME]];
+    if ([db hadError]) {
+        NSLog(@"Err %d:%@",[db lastErrorCode],[db lastErrorMessage]);
+        return NO;
+    }
+    
+    return YES;
+}
+
+-(void)saveMeetinglistFromJsonValue:(id)jsonObj{
+    if (jsonObj!=nil && [jsonObj valueForKey:@"code"]) {
+        NSString *code = [jsonObj valueForKey:@"code"];
+        
+        if ([[SystemContext singletonInstance]processHttpResponseCode:code]) {
+            if ([jsonObj valueForKey:@"result"]) {
+                id paramArray = [jsonObj valueForKey:@"result"];
+                if ([[paramArray class]isSubclassOfClass:[NSArray class]]) {
+                    if (paramArray!=nil && [paramArray count]>0) {
+                      //  [self deleteAllMeetingInfo];
+                        for (int i=0; i<[paramArray count]; i++) {
+                            SBJsonWriter *paramObj = [paramArray objectAtIndex:i];
+                            MeetingInfo *meetingInfo = [[MeetingInfo alloc]init];
+                            if ([paramObj valueForKey:@"id"]) {
+                                NSNumberFormatter* numberFormatter = [[[NSNumberFormatter alloc] init]autorelease];
+                                meetingInfo.mId= [numberFormatter stringFromNumber:[paramObj valueForKey:@"id"]];
+                            }
+                            if ([paramObj valueForKey:@"meetId"]) {
+                                meetingInfo.meetId = [paramObj valueForKey:@"meetId"];
+                            }
+                            if ([paramObj valueForKey:@"meetTitle"]) {
+                                meetingInfo.title = [paramObj valueForKey:@"meetTitle"];
+                            }
+                            if ([paramObj valueForKey:@"startDate"]) {
+                                NSString *startDate = [paramObj valueForKey:@"startDate"];
+                                meetingInfo.startDate =[DateUtil convertStringToNumber:startDate];
+                            }
+                            if ([paramObj valueForKey:@"startTime"]) {
+                                meetingInfo.startTime = [paramObj valueForKey:@"startTime"];
+                            }
+                            if ([paramObj valueForKey:@"endTime"]) {
+                                meetingInfo.endTime = [paramObj valueForKey:@"endTime"];
+                            }
+                            if ([paramObj valueForKey:@"meetAddr"]) {
+                                NSNumberFormatter* numberFormatter = [[[NSNumberFormatter alloc] init]autorelease];
+                               meetingInfo.address = [numberFormatter stringFromNumber:[paramObj valueForKey:@"meetAddr"]];
+                            }
+                            if ([paramObj valueForKey:@"meetCompere"]) {
+                                meetingInfo.compere = [paramObj valueForKey:@"meetCompere"];
+                            }
+                            
+                            [self insertMeetingInfo:meetingInfo];
+                            [meetingInfo release];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+-(void)saveMeetingDetailFromJsonValue:(id)jsonObj
+{
+    if (jsonObj!=nil && [jsonObj valueForKey:@"code"]) {
+        NSString *code = [jsonObj valueForKey:@"code"];
+       
+        if ([[SystemContext singletonInstance]processHttpResponseCode:code]) {
+            if ([jsonObj valueForKey:@"result"]) {
+                SBJsonParser *paramObj = [jsonObj valueForKey:@"result"];
+                MeetingInfo *meetingInfo = [[MeetingInfo alloc]init];
+                if ([paramObj valueForKey:@"id"]) {
+                    NSNumberFormatter* numberFormatter = [[[NSNumberFormatter alloc] init]autorelease];
+                    meetingInfo.mId= [numberFormatter stringFromNumber:[paramObj valueForKey:@"id"]];
+                }
+                if ([paramObj valueForKey:@"meetId"]) {
+                    meetingInfo.meetId = [paramObj valueForKey:@"meetId"];
+                }
+                if ([paramObj valueForKey:@"meetTitle"]) {
+                    meetingInfo.title = [paramObj valueForKey:@"meetTitle"];
+                }
+                if ([paramObj valueForKey:@"startDate"]) {
+                    NSString *strDate = [paramObj valueForKey:@"startDate"];
+                    NSDateFormatter *dataFormatter = [[NSDateFormatter alloc]init];
+                    [dataFormatter setDateFormat:@"yyyy-MM-dd"];
+                    NSDate *date = [dataFormatter dateFromString:strDate];
+                    [dataFormatter release];
+                    NSNumber *dateNumber =[NSNumber numberWithDouble:[date timeIntervalSinceReferenceDate]];
+                    meetingInfo.startDate = dateNumber;
+                }
+                if ([paramObj valueForKey:@"startTime"]) {
+                    meetingInfo.startTime = [paramObj valueForKey:@"startTime"];
+                }
+                if ([paramObj valueForKey:@"endTime"]) {
+                    meetingInfo.endTime = [paramObj valueForKey:@"endTime"];
+                }
+                if ([paramObj valueForKey:@"meetAddr"]) {
+                    meetingInfo.address = [paramObj valueForKey:@"meetAddr"];
+                }
+                if ([paramObj valueForKey:@"meetCompere"]) {
+                    meetingInfo.compere = [paramObj valueForKey:@"meetCompere"];
+                }
+                if ([paramObj valueForKey:@"meetTopic"]) {
+                    meetingInfo.topic = [paramObj valueForKey:@"meetTopic"];
+                }
+                if ([paramObj valueForKey:@"meetPresent"]) {
+                    meetingInfo.present = [paramObj valueForKey:@"meetPresent"];
+                }
+                if ([paramObj valueForKey:@"meetPresentOther"]) {
+                    meetingInfo.presentOther = [paramObj valueForKey:@"meetPresentOther"];
+                }
+                if ([paramObj valueForKey:@"meetDept"]) {
+                    meetingInfo.dept = [paramObj valueForKey:@"meetDept"];
+                }
+                if ([paramObj valueForKey:@"memo"]) {
+                    meetingInfo.memo = [paramObj valueForKey:@"memo"];
+                }                
+
+                [self insertMeetingInfo:meetingInfo];
+                [meetingInfo release];
+            }
+        }
+    }
+}
+
+-(void)saveMeetingOrgInfoFromJsonValue:(id)jsonObj{
+    if (jsonObj!=nil && [jsonObj valueForKey:@"code"]) {
+        NSString *code = [jsonObj valueForKey:@"code"];
+
+        if ([[SystemContext singletonInstance]processHttpResponseCode:code]) {
+            if ([jsonObj valueForKey:@"result"]) {
+                id paramArray = [jsonObj valueForKey:@"result"];
+                if ([[paramArray class]isSubclassOfClass:[NSArray class]]) {
+                    if (paramArray!=nil && [paramArray count]>0) {
+                        [self deleteAllOrg];
+                        for (int i=0; i<[paramArray count]; i++) {
+                            SBJsonWriter *paramObj = [paramArray objectAtIndex:i];
+                            MeetingOrgInfo *meetingOrgInfo = [[MeetingOrgInfo alloc]init];
+                            if ([paramObj valueForKey:@"mrOrgId"]) {
+                                NSNumberFormatter* numberFormatter = [[[NSNumberFormatter alloc] init]autorelease];
+                                meetingOrgInfo.orgId = [numberFormatter stringFromNumber:[paramObj valueForKey:@"mrOrgId"]];
+                              
+                            }
+                            if ([paramObj valueForKey:@"mrOrgName"]) {
+                                meetingOrgInfo.name = [paramObj valueForKey:@"mrOrgName"];
+                            }
+                                                        
+                            [self insertMeetingOrgInfo:meetingOrgInfo];
+                            [meetingOrgInfo release];
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+-(void)saveMeetingRoomInfoFromJsonValue:(id)jsonObj{
+    if (jsonObj!=nil && [jsonObj valueForKey:@"code"]) {
+        NSString *code = [jsonObj valueForKey:@"code"];
+
+        if ([[SystemContext singletonInstance]processHttpResponseCode:code]) {
+            if ([jsonObj valueForKey:@"result"]) {
+                id paramArray = [jsonObj valueForKey:@"result"];
+                if ([[paramArray class]isSubclassOfClass:[NSArray class]]) {
+                    if (paramArray!=nil && [paramArray count]>0) {
+                        [self deleteMeetingRoom];
+                        for (int i=0; i<[paramArray count]; i++) {
+                            SBJsonWriter *paramObj = [paramArray objectAtIndex:i];
+                            MeetingRoomInfo *meetingRoomInfo = [[MeetingRoomInfo alloc]init];
+                            if ([paramObj valueForKey:@"id"]) {
+                                NSNumberFormatter* numberFormatter = [[[NSNumberFormatter alloc] init]autorelease];
+                               meetingRoomInfo.mrId = [numberFormatter stringFromNumber:[paramObj valueForKey:@"id"]];
+                            }
+                            if ([paramObj valueForKey:@"mrAddr"]) {
+                                meetingRoomInfo.address = [paramObj valueForKey:@"mrAddr"];
+                            }
+                            if ([paramObj valueForKey:@"mrEquip"]) {
+                                meetingRoomInfo.equip = [paramObj valueForKey:@"mrEquip"];
+                            }
+                            if ([paramObj valueForKey:@"mrLoad"]) {
+                                meetingRoomInfo.load = [paramObj valueForKey:@"mrLoad"];
+                            }
+                            if ([paramObj valueForKey:@"mrName"]) {
+                                meetingRoomInfo.name = [paramObj valueForKey:@"mrName"];
+                            }
+                            if ([paramObj valueForKey:@"mrOrg"]) {
+                                meetingRoomInfo.org = [paramObj valueForKey:@"mrOrg"];
+                            }
+                                                        
+                            [self insertMeetingRoomInfo:meetingRoomInfo];
+                            [meetingRoomInfo release];
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+}
+-(BOOL)containsKey:(NSString *)keyValue KeyWord:(NSString *)keyword InTable:(NSString *)tableName{
+    if (keyValue==nil) {
+        return NO;
+    }
+    FMResultSet *rs = [db executeQuery:[self SQL:@"SELECT * FROM %@	WHERE ?=?" inTable:tableName],keyword,keyValue];
+    while ([rs next]) {
+        [rs close];
+        return YES;
+    }
+    [rs close];
+    return NO;
+}
+
+-(void)setMeetingInfoProp:(FMResultSet *)rs MeetingInfo:(MeetingInfo *)meetingInfo{
+    meetingInfo.mId = [rs stringForColumn:@"mId"];
+    meetingInfo.meetId = [rs stringForColumn:@"meetId"];
+    meetingInfo.title = [rs stringForColumn:@"title"];
+    meetingInfo.address = [rs stringForColumn:@"address"];
+    meetingInfo.startDate =[NSNumber numberWithInt:[rs intForColumn:@"startDate"]];
+    meetingInfo.startTime = [rs stringForColumn:@"startTime"];
+    meetingInfo.endTime = [rs stringForColumn:@"endTime"];
+    meetingInfo.compere = [rs stringForColumn:@"compere"];
+    meetingInfo.presentOther = [rs stringForColumn:@"present"];
+    meetingInfo.present = [rs stringForColumn:@"presentOther"];
+    meetingInfo.dept = [rs stringForColumn:@"dept"];
+    meetingInfo.topic = [rs stringForColumn:@"topic"];
+    meetingInfo.memo = [rs stringForColumn:@"memo"];
+}
+
+-(void)setMeetingRoomInfoProp:(FMResultSet *)rs MeetingRoomInfo:(MeetingRoomInfo *)meetingRoomInfo{
+    meetingRoomInfo.mrId = [rs stringForColumn:@"mrId"];
+    meetingRoomInfo.address = [rs stringForColumn:@"address"];
+    meetingRoomInfo.equip = [rs stringForColumn:@"equip"];
+    meetingRoomInfo.load = [rs stringForColumn:@"load"];
+    meetingRoomInfo.name = [rs stringForColumn:@"name"];
+    meetingRoomInfo.org = [rs stringForColumn:@"org"];
+}
+
+@end

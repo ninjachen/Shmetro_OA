@@ -1,0 +1,23 @@
+//
+//  AttachFileInfoDao.h
+//  ShmetroOA
+//
+//  Created by  on 12-9-13.
+//  Copyright (c) 2012年 __MyCompanyName__. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import "BaseDao.h"
+#import "FMDatabase.h"
+#import "FMDatabaseAdditions.h"
+#import "AttachFileInfo.h"
+@interface AttachFileInfoDao : BaseDao
+-(void)insert:(AttachFileInfo *)fileInfo;
+-(void)update:(AttachFileInfo *)fileInfo;
+-(BOOL)delete:(NSString *)fileGroupId FileId:(NSString *)fileId;
+-(BOOL)deleteGroupFile:(NSString *)fileGroupId;
+-(NSMutableArray *)searchAttachFileInfoList:(NSString *)fileGroupId;
+-(BOOL)deleteAll;
+-(void)startReflashAttachFileInfo:(NSString *)fileGroupId;
+-(void)endReflashAttachFileInfo:(NSString *)fileGroupId;
+@end

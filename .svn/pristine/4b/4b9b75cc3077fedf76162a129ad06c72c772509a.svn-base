@@ -1,0 +1,94 @@
+//
+//  SettingAutoRefreshTimeViewController.m
+//  ShmetroOA
+//
+//  Created by caven shen on 11/21/12.
+//
+//
+
+#import "SettingAutoRefreshTimeViewController.h"
+
+@interface SettingAutoRefreshTimeViewController ()
++(NSString *)reuseIdentifier;
+@end
+
+@implementation SettingAutoRefreshTimeViewController
+@synthesize tableview;
+@synthesize selDataArr;
+@synthesize settingDelegate;
+- (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
+{
+    if ([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPhone) {
+        self = [super initWithNibName:@"SettingAutoRefreshTimeViewController_iPhone" bundle:nil];
+    } else {
+        self = [super initWithNibName:@"SettingAutoRefreshTimeViewController_iPad" bundle:nil];
+    }
+    if (self) {
+        // Custom initialization
+    }
+    return self;
+}
+
+-(id)init:(NSArray *)dataArr{
+    self = [super init];
+    if (self) {
+        self.selDataArr = dataArr;
+    }
+    return self;
+}
+
+- (void)viewDidLoad
+{
+    [super viewDidLoad];
+	// Do any additional setup after loading the view.
+}
+
+- (void)viewDidUnload
+{
+    [self setTableview:nil];
+    [super viewDidUnload];
+    // Release any retained subviews of the main view.
+}
+
+- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+{
+    return (interfaceOrientation == UIInterfaceOrientationPortrait);
+}
+
+- (void)dealloc {
+    [tableview release];
+    [super dealloc];
+}
+- (IBAction)action_back:(id)sender {
+    [self.navigationController popViewControllerAnimated:YES];
+}
+#pragma mark - private method
++(NSString *)reuseIdentifier {
+    return NSStringFromClass([self class]);
+}
+
+#pragma mark - UITableViewDataSource
+- (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
+    return self.selDataArr==nil?0:[self.selDataArr count];
+}
+- (UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
+    UITableViewCell *cell = [tableView dequeueReusableCellWithIdentifier:[SettingAutoRefreshTimeViewController reuseIdentifier]];
+    if (cell==nil) {
+        cell = [[[UITableViewCell alloc]initWithStyle:UITableViewCellStyleDefault reuseIdentifier:[SettingAutoRefreshTimeViewController reuseIdentifier]]autorelease];
+        [cell.textLabel setTextAlignment:UITextAlignmentCenter];
+        [cell.contentView setBackgroundColor:[UIColor clearColor]];
+        [cell setBackgroundColor:[UIColor clearColor]];
+    }
+    [cell.textLabel setText:[self.selDataArr objectAtIndex:[indexPath row]]];
+    return cell;
+}
+#pragma mark - UITableViewDelegate
+
+- (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
+    if (settingDelegate) {
+        [settingDelegate setAutoRefreshTime:[indexPath row]];
+    }
+    [tableView deselectRowAtIndexPath:indexPath animated:NO];
+    [self.navigationController popViewControllerAnimated:YES];
+}
+@end

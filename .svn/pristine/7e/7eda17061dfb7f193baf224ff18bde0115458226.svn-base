@@ -1,0 +1,183 @@
+//
+//  AttachFileInfoDao.m
+//  ShmetroOA
+//
+//  Created by  on 12-9-13.
+//  Copyright (c) 2012年 __MyCompanyName__. All rights reserved.
+//
+
+#import "AttachFileInfoDao.h"
+#define TABLE_NAME @"attachfileinfo"
+@interface AttachFileInfoDao(PrivateMethods)
+-(Boolean)containsKey:(NSString *)fileGroupId FileId:(NSString *)fileId;
+-(void)setAttachFileInfoProp:(FMResultSet *)rs AttachFileInfo:(AttachFileInfo *)attachFileInfo;
+@end
+@implementation AttachFileInfoDao
+-(void)insert:(AttachFileInfo *)fileInfo{
+    if (![self containsKey:fileInfo.groupId FileId:fileInfo.fileId]) {
+        [db executeUpdate:[self SQL:@"INSERT INTO %@ (memo,path,fileId,status,appName,fileGroupId,removed,version,fileName,fileSize,uploader,uploadDate,fileExtName,operateTime,saveFileName,uploaderLoginName,syncFlag) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)" inTable:TABLE_NAME],fileInfo.memo,fileInfo.path,fileInfo.fileId,fileInfo.status,fileInfo.appName,fileInfo.groupId,fileInfo.removed,fileInfo.version,fileInfo.fileName,fileInfo.fileSize,fileInfo.uploader,fileInfo.uploadDate,fileInfo.fileExtName,fileInfo.operateTime,fileInfo.saveFileName,fileInfo.uploaderLoginName,@"1"];
+        if ([db hadError]) {
+            NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+        }
+        
+    } else {
+        [self update:fileInfo];
+    } 
+}
+-(void)update:(AttachFileInfo *)fileInfo{
+    NSMutableDictionary *updateDic = [[[NSMutableDictionary alloc]init] autorelease];
+    if (fileInfo.fileName&&![fileInfo.fileName isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.fileName forKey:@"fileName"];
+    }
+    if (fileInfo.fileExtName&&![fileInfo.fileExtName isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.fileExtName forKey:@"fileExtName"];
+    }
+    if (fileInfo.path&&![fileInfo.path isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.path forKey:@"path"];
+    }
+    if (fileInfo.fileSize&&![fileInfo.fileSize isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.fileSize forKey:@"fileSize"];
+    }
+    if (fileInfo.uploader&&![fileInfo.uploader isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.uploader forKey:@"uploader"];
+    }
+    if (fileInfo.uploaderLoginName&&![fileInfo.uploaderLoginName isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.uploaderLoginName forKey:@"uploaderLoginName"];
+    }
+    if (fileInfo.uploadDate&&![fileInfo.uploadDate isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.uploadDate forKey:@"uploadDate"];
+    }
+    if (fileInfo.appName&&![fileInfo.appName isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.appName forKey:@"appName"];
+    }
+    if (fileInfo.saveFileName&&![fileInfo.saveFileName isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.saveFileName forKey:@"saveFileName"];
+    }
+    if (fileInfo.memo&&![fileInfo.memo isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.memo forKey:@"memo"];
+    }
+    if (fileInfo.version&&![fileInfo.version isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.version forKey:@"version"];
+    }
+    if (fileInfo.status&&![fileInfo.status isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.status forKey:@"status"];
+    }
+    if (fileInfo.operateTime&&![fileInfo.operateTime isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.operateTime forKey:@"operateTime"];
+    }
+    if (fileInfo.localPath&&![fileInfo.localPath isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.localPath forKey:@"localPath"];
+    }
+    if (fileInfo.downloadUrl&&![fileInfo.downloadUrl isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.downloadUrl forKey:@"downloadUrl"];
+    }
+    if (fileInfo.removed&&![fileInfo.removed isEqualToString:@""]) {
+        [updateDic setValue:fileInfo.removed forKey:@"removed"];
+    }
+    [updateDic setValue:[NSString stringWithFormat:@"%d",1] forKey:@"syncFlag"];
+    NSString *fieldsStr=@"";
+    NSString *key;
+    if ([updateDic.allKeys count]>0) {
+        for (int i=0; i<[updateDic.allKeys count]; i++) {
+            key = [updateDic.allKeys objectAtIndex:i];
+            if (i==0) {
+                fieldsStr = [NSString stringWithFormat:@"%@=?",key];
+            }else {
+                fieldsStr = [NSString stringWithFormat:@"%@, %@=?",fieldsStr,key];
+            }
+        }
+    }
+    NSMutableArray *fieldValues = [[[NSMutableArray alloc]initWithArray:[updateDic allValues]] autorelease];
+    [fieldValues addObject:fileInfo.groupId];
+    [fieldValues addObject:fileInfo.fileId];
+    NSString *sql = [NSString stringWithFormat:@"UPDATE %@ SET %@ WHERE fileGroupId=? and fileId=?",TABLE_NAME,fieldsStr];
+    [db executeUpdate:sql withArgumentsInArray:fieldValues];
+}
+-(BOOL)delete:(NSString *)fileGroupId FileId:(NSString *)fileId{
+    BOOL success = YES;
+	[db executeUpdate:[self SQL:@"DELETE FROM %@ WHERE fileGroupId=? and fileId=?" inTable:TABLE_NAME],fileGroupId,fileId];
+	if ([db hadError]) {
+		NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+		success = NO;
+	}
+	return success;
+}
+-(BOOL)deleteGroupFile:(NSString *)fileGroupId{
+    BOOL success = YES;
+	[db executeUpdate:[self SQL:@"DELETE FROM %@ WHERE fileGroupId=?" inTable:TABLE_NAME],fileGroupId];
+	if ([db hadError]) {
+		NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+		success = NO;
+	}
+	return success;
+}
+-(NSMutableArray *)searchAttachFileInfoList:(NSString *)fileGroupId{
+    NSMutableArray *result = [[[NSMutableArray alloc] init] autorelease];
+	
+	FMResultSet *rs = [db executeQuery:[self SQL:@"SELECT * FROM %@ where fileGroupId=?" inTable:TABLE_NAME],fileGroupId];
+	while ([rs next]) {
+        AttachFileInfo *attachFileInfo = [[AttachFileInfo alloc]init];
+        [self setAttachFileInfoProp:rs AttachFileInfo:attachFileInfo];
+		[result addObject:attachFileInfo];
+		[attachFileInfo release];
+	}
+	[rs close];
+	
+	return result;
+}
+-(BOOL)deleteAll{
+    BOOL success = YES;
+	[db executeUpdate:[self SQL:@"DELETE FROM %@" inTable:TABLE_NAME]];
+	if ([db hadError]) {
+		NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+		success = NO;
+	}
+	return success;
+}
+-(void)startReflashAttachFileInfo:(NSString *)fileGroupId{
+    [db executeUpdate:[self SQL:@"UPDATE %@ SET syncFlag=? where fileGroupId=?" inTable:TABLE_NAME],@"0",fileGroupId];
+	if ([db hadError]) {
+		NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+	}
+}
+-(void)endReflashAttachFileInfo:(NSString *)fileGroupId{
+    [db executeUpdate:[self SQL:@"DELETE FROM %@ WHERE syncFlag=? and fileGroupId=?" inTable:TABLE_NAME],@"0",fileGroupId];
+	if ([db hadError]) {
+		NSLog(@"Err %d: %@", [db lastErrorCode], [db lastErrorMessage]);
+	}
+}
+
+#pragma mark - Private Method Implements
+-(Boolean)containsKey:(NSString *)fileGroupId FileId:(NSString *)fileId{
+    if (fileGroupId==nil||fileId==nil) {
+        return NO;
+    }
+    FMResultSet *rs = [db executeQuery:[self SQL:@"SELECT * FROM %@	WHERE fileGroupId=? and fileId=?" inTable:TABLE_NAME],fileGroupId,fileId];
+    while ([rs next]) {
+        [rs close];
+        return YES;
+    }
+    [rs close];
+    return NO;
+}
+-(void)setAttachFileInfoProp:(FMResultSet *)rs AttachFileInfo:(AttachFileInfo *)attachFileInfo
+{
+    attachFileInfo.fileId = [rs stringForColumn:@"fileId"];
+    attachFileInfo.memo = [rs stringForColumn:@"memo"];
+    attachFileInfo.path = [rs stringForColumn:@"path"];
+    attachFileInfo.status = [rs stringForColumn:@"status"];
+    attachFileInfo.appName = [rs stringForColumn:@"appName"];
+    attachFileInfo.groupId = [rs stringForColumn:@"fileGroupId"];
+    attachFileInfo.removed = [rs stringForColumn:@"removed"];
+    attachFileInfo.version = [rs stringForColumn:@"version"];
+    attachFileInfo.fileName = [rs stringForColumn:@"fileName"];
+    attachFileInfo.uploader = [rs stringForColumn:@"uploader"];
+    attachFileInfo.uploadDate = [rs stringForColumn:@"uploadDate"];
+    attachFileInfo.fileExtName = [rs stringForColumn:@"fileExtName"];
+    attachFileInfo.operateTime = [rs stringForColumn:@"operateTime"];
+    attachFileInfo.saveFileName = [rs stringForColumn:@"saveFileName"];
+    attachFileInfo.uploaderLoginName = [rs stringForColumn:@"uploaderLoginName"];
+    attachFileInfo.localPath = [rs stringForColumn:@"localPath"];
+    attachFileInfo.downloadUrl = [rs stringForColumn:@"downloadUrl"];
+}
+@end

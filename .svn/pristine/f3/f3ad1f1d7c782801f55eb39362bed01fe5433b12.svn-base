@@ -1,0 +1,406 @@
+//
+//  FileUploadContext.m
+//  ShmetroOA
+//
+//  Created by caven shen on 11/15/12.
+//
+//
+
+#import "FileUploadContext.h"
+#import <CFNetwork/CFNetwork.h>
+#import "FileInfoDao.h"
+#import "NotificationContext.h"
+#import "ApiConfig.h"
+#import "StringUtil.h"
+#include "JSON.h"
+#import "NSString+SBJSON.h"
+#import "SystemContext.h"
+#import "STOService.h"
+#import "TodoInfoDao.h"
+#import "TodoInfo.h"
+static NSString *LOG_TYPE=@"FileUploadContext";
+static long MAX_UPLOAD_SIZE=2097152;
+static FileUploadContext *instance = NULL;
+
+
+
+@implementation FileUploadContext
+@synthesize uploadQueue;
+@synthesize uploadTimmer;
+@synthesize isUploadding;
+@synthesize networkQueue;
+@synthesize currentUploadRequest;
+@synthesize currentUploadFileIndex;
+void *currentUploadData;
+NSArray *tmpUploadFileArr;
+NSMutableDictionary *changeDic;
++(id)singletonInstance{
+    if(instance==nil){
+        instance = [[FileUploadContext alloc]init];
+    }
+    return (instance);
+}
+-(id)init{
+	self = [super init];
+    if(self){
+        changeDic = [[NSMutableDictionary alloc]init];
+        FileInfoDao *fileInfoDao = [[FileInfoDao alloc]init];
+        self.uploadQueue = [fileInfoDao searchUploadArr];
+        [fileInfoDao release];
+        isUploadding = NO;
+        uploadTimmer = [NSTimer timerWithTimeInterval:1
+                                               target:self selector:@selector(timerFire:)  userInfo:nil repeats:YES];
+        [[NSRunLoop mainRunLoop] addTimer:uploadTimmer forMode:NSDefaultRunLoopMode];
+        ASINetworkQueue *tmpASINetworkQueue =  [[ASINetworkQueue alloc]init];
+        self.networkQueue=tmpASINetworkQueue;
+        [tmpASINetworkQueue release];
+        [self.networkQueue reset];
+        [self.networkQueue setShowAccurateProgress:YES];
+        [self.networkQueue go];
+    }
+    return self;
+}
+-(void)dealloc{
+    [uploadQueue release];
+    self.uploadQueue = nil;
+    [networkQueue release];
+    [uploadTimmer invalidate];
+    [super dealloc];
+}
+-(void)timerFire:(id)sender{
+    if (!isUploadding&&uploadQueue!=nil&&[uploadQueue count]>0) {
+        [self upload:0];
+    }
+}
+
+#pragma mark - private method
+-(void)upload:(int)fileInfoIndex{
+    
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_LOW, 0), ^{
+        isUploadding = YES;
+        if (fileInfoIndex<[uploadQueue count]) {
+            FileInfo *fileInfo = [[uploadQueue objectAtIndex:fileInfoIndex] retain];
+            if (fileInfo!=nil) {
+                self.currentUploadFileIndex = fileInfo.index;
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    [[NotificationContext singletonInstance] reflashUploadMonitor];
+                });
+                [self preUploadFile:fileInfo];
+//                if ([fileInfo.fileID isEqualToString:@"-1"]) {
+//                    [self preUploadFile:fileInfo];
+//                }else{
+//                    [self uploadFile:[self getOffset:fileInfo] FileInfo:fileInfo];
+//                }
+            }else{
+                isUploadding = NO;
+            }
+            [fileInfo release];
+        }
+    });
+}
+
+//-(long)getOffset:(FileInfo *)fileInfo{
+//    long *offset = 0;
+//    
+//    return offset;
+//}
+
+
+-(void)preUploadFile:(FileInfo *)fileInfo{
+    ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:[ApiConfig getDataExchangeAPIUrl]];
+     NSString *dataPara = [NSString stringWithFormat:@"<?xml version=\"1.0\" encoding=\"utf-8\"?><params><fileName>%@</fileName><fileSize>%@</fileSize><fileType>%@</fileType><groupId>%@</groupId><fileId>%@</fileId></params>",fileInfo.fileName,fileInfo.fileSize,fileInfo.fileType,fileInfo.groupId,fileInfo.fileID];
+    [ApiConfig setHttpPostData:request Method:[ApiConfig getBeginUploadMethod] DataParams:dataPara Key:[[[UserAccountContext singletonInstance] userAccountInfo] token]];
+    [request setRequestMethod:@"POST"];
+    [request startSynchronous];
+    NSError *error = [request error];
+    if (!error) {
+        NSString *respStr = [[[NSString alloc]initWithData:[request responseData] encoding:NSUTF8StringEncoding] autorelease];
+        id jsonObj = [respStr JSONValue];
+        [self convertBeginUpload:jsonObj FileInfo:fileInfo];
+    }
+    
+}
+/*
+ {
+ "description": "success!",
+ "params": {"param":  {
+ "fileSize": "378940",
+ "fileId": "60429",
+ "groupId": "{9FFAFFF6-0C3E-766F-569D-8DF828E068A2}",
+ "createTime": "2012-11-22 12:57:24",
+ "fileName": "8C77567C7620499E977D3013815BD891",
+ "offset": "0",
+ "fileUrl": "xxxxx"
+ }},
+ "code": "100"
+ }
+ **/
+-(void)convertBeginUpload:(SBJsonParser *)jsonObj FileInfo:(FileInfo *)fileInfo{
+    if (jsonObj!=nil&&[jsonObj valueForKey:@"code"]) {
+        NSString *code = [jsonObj valueForKey:@"code"];
+        NSString *description = @"";
+        if ([jsonObj valueForKey:@"description"]) {
+            description = [jsonObj valueForKey:@"description"];
+        }
+        if ([[SystemContext singletonInstance] processHttpResponseCode:code Desc:description]) {
+            SBJsonParser *paramsObj = [jsonObj valueForKey:@"params"];
+            if (paramsObj) {
+                SBJsonParser *paramObj = [paramsObj valueForKey:@"param"];
+                fileInfo.groupId = [paramObj valueForKey:@"groupId"];
+                fileInfo.fileID = [paramObj valueForKey:@"fileId"];
+                fileInfo.createTime = [paramObj valueForKey:@"createTime"];
+                fileInfo.offset = [[paramObj valueForKey:@"offset"] intValue];
+                FileInfoDao *fileInfoDao = [[FileInfoDao alloc]init];
+                [fileInfoDao update:fileInfo];
+                [fileInfoDao release];
+                [self uploadFile:fileInfo.offset FileInfo:fileInfo];
+            }
+        }
+    }
+}
+
+-(void)uploadFile:(long)offset FileInfo:(FileInfo *)fileInfo{
+    fileInfo.offset = offset;
+    long uploadSize = [fileInfo.fileSize longLongValue]-offset;
+    if (uploadSize>MAX_UPLOAD_SIZE) {
+        uploadSize = MAX_UPLOAD_SIZE;
+        [self uploadFileProcess:offset UploadSize:uploadSize Commit:NO FileInfo:fileInfo];
+    }else{
+        uploadSize = [fileInfo.fileSize longLongValue]-offset;
+        [self uploadFileProcess:offset UploadSize:uploadSize Commit:YES FileInfo:fileInfo];
+    }
+}
+
+-(void)uploadFileProcess:(long)offset UploadSize:(long)uploadSize Commit:(BOOL)commit FileInfo:(FileInfo *)fileInfo{
+    @try{
+        UserAccountContext *userAccountContext = [UserAccountContext singletonInstance];
+        ASIFormDataRequest *request = [[ASIFormDataRequest alloc] initWithURL:[ApiConfig getUploadFileUrl]];
+        request.delegate = self;
+        request.requestMethod = @"PUT";
+        [request setResponseEncoding:NSUTF8StringEncoding];
+        [request setUploadProgressDelegate:self];
+        NSMutableDictionary *headerDic = [[NSMutableDictionary alloc]init];
+         NSString *signStr = [NSString stringWithFormat:@"%@%@%@%@",[ApiConfig getKeyMobile],userAccountContext.userAccountInfo.token,[ApiConfig getFileUploadMethod],[ApiConfig getKeySecret]];
+        [headerDic setValue:[ApiConfig getKeyMobile] forKey:@"appName"];
+        [headerDic setValue:[ApiConfig getFileUploadMethod] forKey:@"method"];
+        [headerDic setValue:[ApiConfig getKeySecret] forKey:@"secret"];
+        [headerDic setValue:[StringUtil md5Digest:signStr] forKey:@"sign"];
+        [headerDic setValue:userAccountContext.userAccountInfo.token forKey:@"token"];
+        [headerDic setValue:@"binary/octet-stream" forKey:@"Content-Type"];
+        [headerDic setValue:[NSString stringWithFormat:@"<?xml version=\"1.0\" encoding=\"utf-8\"?><params><fileId>%@</fileId></params>",fileInfo.fileID] forKey:@"dataParams"];
+        [request setDelegate:self];
+
+        FILE *file = fopen([fileInfo.localPath UTF8String], "rb");
+        void *data = malloc(uploadSize);  // check for NULL!
+        if (file!=nil) {
+            fseeko(file, offset, SEEK_SET);
+            fread(data, 1, uploadSize, file);  // check return value, in case read was short!
+            fclose(file);
+            //currentUploadData = data;
+            [request setData:[NSData dataWithBytesNoCopy:data length:uploadSize] forKey:@"data"];
+            [request setDidFailSelector:@selector(uploadFailed:)];
+            if (commit) {
+                [request setDidFinishSelector:@selector(uploadFinished:)];
+            }else{
+                [request setDidFinishSelector:@selector(partUploadFinished:)];
+            }
+            [request setUserInfo:[NSDictionary dictionaryWithObjectsAndKeys:[NSString stringWithFormat:@"%ld",offset],@"offset",[NSString stringWithFormat:@"%ld",uploadSize],@"uploadSize",fileInfo,@"fileObj",nil]];
+            [request setContentLength:uploadSize];
+        }else {
+            isUploadding = NO;
+            return;
+        }
+        [request setRequestHeaders:headerDic];
+        [request setShouldContinueWhenAppEntersBackground:YES];
+        [request setRequestMethod:fileInfo.uploadType];
+        currentUploadRequest = request;
+        [networkQueue addOperation:request];
+        [headerDic release];
+    }
+    @catch(NSException *){
+        NSLog(@"catched");
+    }
+    @finally {
+        
+    }
+}
+
+
+- (void)uploadFailed:(ASIHTTPRequest *)theRequest
+{
+    NSDictionary *userInfoDic = theRequest.userInfo;
+    if (userInfoDic!=nil) {
+        FileInfo *fileInfo = [userInfoDic objectForKey:@"fileObj"];
+        fileInfo.uploadFlag = [FileInfo UPLOAD_FLAG_FAIL];
+        FileInfoDao *dao = [[FileInfoDao alloc]init];
+        [dao update:fileInfo];
+        [dao release];
+    }
+    
+    [theRequest release];
+    isUploadding = NO;
+}
+
+- (void)getDownloadOffsetFailed:(ASIHTTPRequest *)theRequest
+{
+    [theRequest release];
+}
+
+-(void)partUploadFinished:(ASIHTTPRequest *)theRequest{
+    NSDictionary *userInfoDic = [theRequest userInfo];
+    FileInfo *fileInfo = [userInfoDic objectForKey:@"fileObj"];
+    NSString *uploadSizeStr = [userInfoDic objectForKey:@"uploadSize"];
+    NSString *offsetStr = [userInfoDic objectForKey:@"offset"];
+    long uploadSize = [uploadSizeStr longLongValue];
+    long offset = [offsetStr longLongValue];
+    fileInfo.uploadFlag = [FileInfo UPLOAD_FLAG_ING];
+    fileInfo.percent = ((uploadSize+offset)/[fileInfo.fileSize longLongValue])*100;
+    FileInfoDao *dao = [[FileInfoDao alloc]init];
+    [dao update:fileInfo];
+    [dao release];
+    [theRequest release];
+    
+    if ([fileInfo.fileSize longLongValue]==offset) {
+        [self uploadFileProcess:offset UploadSize:0 Commit:YES FileInfo:fileInfo];
+    }else{
+        if ([fileInfo.fileSize longLongValue]-offset-uploadSize>MAX_UPLOAD_SIZE){
+            [self uploadFileProcess:offset+uploadSize UploadSize:MAX_UPLOAD_SIZE Commit:NO FileInfo:fileInfo];
+        }else{
+            [self uploadFileProcess:offset+uploadSize UploadSize:([fileInfo.fileSize longLongValue]-offset-uploadSize) Commit:NO FileInfo:fileInfo];
+        }
+    }
+    
+}
+- (void)uploadFinished:(ASIHTTPRequest *)theRequest{
+    NSDictionary *userInfoDic = theRequest.userInfo;
+    if (userInfoDic!=nil) {
+        
+        FileInfo *fileInfo = [userInfoDic objectForKey:@"fileObj"];
+        fileInfo.percent = 0;
+        fileInfo.uploadFlag = [FileInfo UPLOAD_FLAG_SUCCESS];
+        fileInfo.downloadUrl = @"";
+        FileInfoDao *dao = [[FileInfoDao alloc]init];
+        [dao update:fileInfo];
+        self.uploadQueue = [dao searchUploadArr];
+        [dao release];
+        [self uploadFileCommit:fileInfo];
+        
+        
+    }
+    
+}
+
+-(void)uploadFileCommit:(FileInfo *)fileInfo{
+    ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:[ApiConfig getDataExchangeAPIUrl]];
+    NSString *dataPara = [NSString stringWithFormat:@"<?xml version=\"1.0\" encoding=\"utf-8\"?><params><fileId>%@</fileId><fileSize>%@</fileSize></params>",fileInfo.fileID,fileInfo.fileSize];
+    [ApiConfig setHttpPostData:request Method:[ApiConfig getEndUploadMethod] DataParams:dataPara Key:[[[UserAccountContext singletonInstance] userAccountInfo] token]];
+    [request setRequestMethod:@"POST"];
+    [request startSynchronous];
+    NSError *error = [request error];
+    if (!error) {
+        NSString *respStr = [[[NSString alloc]initWithData:[request responseData] encoding:NSUTF8StringEncoding] autorelease];
+        NSLog(respStr);
+        id jsonObj = [respStr JSONValue];
+        [self processCommitUpload:jsonObj FileInfo:fileInfo];
+    }
+    
+    isUploadding = NO;
+}
+/**
+ {
+ "description": "success!",
+ "params": {"param":  {
+ "fileSize": "0",
+ "fileId": "60431",
+ "groupId": "{C0EE34DC-797B-A745-6422-EF7BD19333DC}",
+ "createTime": "2012-11-22 13:10:57",
+ "status": "fail",
+ "fileName": "8C77567C7620499E977D3013815BD891..caf",
+ "offset": "0",
+ "fileUrl": "xxxxx"
+ }},
+ "code": "100"
+ }
+ */
+-(void)processCommitUpload:(SBJsonParser *)jsonObj FileInfo:(FileInfo *)fileInfo{
+    if (jsonObj!=nil&&[jsonObj valueForKey:@"code"]) {
+        NSString *code = [jsonObj valueForKey:@"code"];
+        NSString *description = @"";
+        if ([jsonObj valueForKey:@"description"]) {
+            description = [jsonObj valueForKey:@"description"];
+        }
+        if ([[SystemContext singletonInstance] processHttpResponseCode:code Desc:description]) {
+            SBJsonParser *paramsObj = [jsonObj valueForKey:@"params"];
+            if (paramsObj) {
+                SBJsonParser *paramObj = [paramsObj valueForKey:@"param"];
+                NSString *status = [paramObj valueForKey:@"status"];
+                if([status isEqualToString:@"success"]){
+                    STOService *service = [[STOService alloc]init];
+                    TodoInfoDao *dao = [[[TodoInfoDao alloc]init] autorelease];
+                    TodoInfo *todoInfo = [dao getTodoInfo:fileInfo.todoId];
+                    todoInfo.uploadfilegroupid = fileInfo.groupId;
+                    NSDictionary *processDic = [service processTodo:todoInfo];
+                    [service release];
+                    if (processDic!=nil) {
+                        todoInfo.processFlag = @"1";
+                    }else{
+                        todoInfo.processFlag = @"0";
+                    }
+                    [dao update:todoInfo];
+                    dispatch_async(dispatch_get_main_queue(), ^{
+                        [[NotificationContext singletonInstance] reflashUploadMonitor];
+                        [[NotificationContext singletonInstance] uploadChangeMonitor];
+                    });
+                }
+                
+            }
+        }
+    }
+    
+    
+}
+
+-(void)reflashQueue:(FileInfoDao *)fileInfoDao{
+    self.uploadQueue = [fileInfoDao searchUploadArr];
+}
+
+-(FileInfo *)localPathToFileInfo:(NSString *)localPath{
+    FileInfo *respFile = [[[FileInfo alloc]init] autorelease];
+    respFile.uploadType = @"PUT";
+    respFile.mediaPath = @"";
+    respFile.fileID = @"-1";
+    respFile.groupId = @"-1";
+    respFile.localPath = localPath;
+    respFile.fileName = [localPath lastPathComponent];
+    respFile.fileType = [NSString stringWithFormat:@".%@",[localPath pathExtension]];
+    respFile.uploadFlag = [FileInfo UPLOAD_FLAG_BEGIN];
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSDictionary *fileAttributes = [fm attributesOfItemAtPath:localPath error:nil];
+    if (fileAttributes!=nil) {
+        respFile.fileSize = [NSString stringWithFormat:@"%llu",[fileAttributes fileSize]];
+        NSDate *localDate = [fileAttributes objectForKey:NSFileCreationDate];
+        if (localDate!=nil) {
+            NSDateFormatter *fmt = [[[NSDateFormatter alloc] init] autorelease];
+            [fmt setDateFormat:@"yyyy-MM-dd HH:mm:ss"];
+            respFile.localDate = [fmt stringFromDate:localDate];
+        }
+    }
+    respFile.offset = @"0";
+    return respFile;
+}
+
+
+#pragma mark - public method
+-(void)putLocalFile:(NSString *)filePath TodoId:(NSString *)todoId{
+    FileInfo *fileInfo = [self localPathToFileInfo:filePath];
+    fileInfo.todoId = todoId;
+    [self put:fileInfo];
+}
+-(void)put:(FileInfo *)fileInfo{
+    FileInfoDao *fileInfoDao = [[FileInfoDao alloc]init];
+    [fileInfoDao insert:fileInfo];
+    [self reflashQueue:fileInfoDao];
+    [fileInfoDao release];
+    
+}
+@end

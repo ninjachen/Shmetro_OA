@@ -1,0 +1,33 @@
+//
+//  IPad_ContactViewController.h
+//  ShmetroOA
+//
+//  Created by gisteam on 6/9/13.
+//
+//
+
+#import <UIKit/UIKit.h>
+#import "ContactInfo.h"
+#import "ViewController.h"
+
+
+@interface IPad_ContactDetailViewController : UIViewController<UITableViewDataSource,UITableViewDelegate>
+{
+    
+}
+
+@property(nonatomic,retain)ContactInfo *contactInfo;
+@property(nonatomic,retain)NSMutableDictionary *contactDictionary;
+@property(nonatomic,retain)IBOutlet UITableView *contactDetailTableView;
+@property (nonatomic, assign) id<MainViewControllerDelegate> delegate;
+@property (retain, nonatomic) IBOutlet UIImageView *imgView_bg;
+@property(nonatomic,retain)IBOutlet UIButton *btn_tips;
+@property(nonatomic,retain)IBOutlet UIButton *btn_fullView;
+@property(nonatomic,retain)IBOutlet UIButton *btn_smallView;
+
+-(id)init:(ContactInfo *)contactInfoObj;
+-(IBAction)showFullView:(id)sender;
+-(IBAction)showSmallView:(id)sender;
+-(IBAction)showTips:(id)sender;
+-(IBAction)changeScreen:(UIButton*)sender;
+@end
