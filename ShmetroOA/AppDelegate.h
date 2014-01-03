@@ -23,8 +23,9 @@
 @property (strong,nonatomic) LoginViewController *loginViewController;
 @property (nonatomic,retain) UINavigationController *navcontroller ;
 
--(void)loginSuccess;
--(void)userLogout;
+- (void)loginSuccess;
+- (void)userLogout;
+- (void)refreshCache;
 
 - (void)showLoading;
 - (void)showLoadingWithText:(NSString *)text;

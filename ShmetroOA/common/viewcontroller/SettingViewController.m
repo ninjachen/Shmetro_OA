@@ -206,7 +206,7 @@ NSArray *autoRefreshTimeValueArr;
 //                        [btn setFrame:CGRectMake(0, 0, 295, 40)];
 //                        [cell.contentView addSubview:btn];
                         [cell.textLabel setTextAlignment:UITextAlignmentCenter];
-                        [cell.textLabel setText:@"检查更新"];
+                        [cell.textLabel setText:@"清除缓存"];
                     }
                     break;
                 }
@@ -306,7 +306,8 @@ NSArray *autoRefreshTimeValueArr;
         case 4:{
             switch ([indexPath row]) {
                 case 0:{
-                    
+                    AppDelegate* appDelegate = (AppDelegate *)[[UIApplication sharedApplication] delegate];
+                    [appDelegate refreshCache];
                     break;
                 }
                 default:

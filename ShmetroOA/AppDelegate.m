@@ -8,12 +8,16 @@
 
 #import "AppDelegate.h"
 #import "ApiConfig.h"
+#import "ContactInfoDao.h"
 #import "ViewController.h"
 #import "LoginViewController.h"
 #import "UserAccountContext.h"
+#import "MessageDao.h"
+#import "MeetingDao.h"
 #import "NetWorkManager.h"
 #import "SystemContext.h"
 #import "STOService.h"
+#import "TodoInfoDao.h"
 #import "FileUploadContext.h"
 NSString *updateUrl;
 @interface AppDelegate(PrivateMethods)
@@ -122,6 +126,86 @@ NSString *updateUrl;
         [tmpLoginViewController release];
     }
     self.window.rootViewController = self.loginViewController;
+}
+
+-(void)refreshCache{
+    NSMutableString *strMessage = [[[NSMutableString alloc] init]autorelease];
+    NSString *temp = nil;
+    MessageDao *tmpMessageDao = [[MessageDao alloc]init];
+    if ([tmpMessageDao deleteAllMessages])//清空最新消息缓存
+    {
+        temp = @"清空最新消息缓存成功\n";
+        [strMessage appendString:temp];
+        [temp release];
+    }
+    else
+    {
+        temp = @"清空最新消息缓存失败\n";
+        [strMessage appendString:temp];
+        [temp release];
+
+    }
+    [tmpMessageDao release];
+
+    TodoInfoDao *tmpTodoInfoDao = [[TodoInfoDao alloc]init];
+    if ([tmpTodoInfoDao deleteAll])//清空待办事项缓存
+    {
+        temp = @"清空待办事项缓存成功\n";
+        [strMessage appendString:temp];
+        [temp release];
+
+    }
+    else
+    {
+        temp = @"清空待办事项缓存失败\n";
+        [strMessage appendString:temp];
+        [temp release];
+
+    }
+    [tmpTodoInfoDao release];
+    
+    MeetingDao *tmpMeetingDao = [[MeetingDao alloc]init];
+    if ([tmpMeetingDao deleteAllMeetingInfo] && [tmpMeetingDao deleteAllOrg])//清空会议安排缓存
+    {
+        temp = @"清空会议安排缓存成功\n";
+        [strMessage appendString:temp];
+        [temp release];
+
+    }
+    else
+    {
+        temp = @"清空会议安排缓存失败\n";
+        [strMessage appendString:temp];
+        [temp release];
+
+    }
+    [tmpMeetingDao release];
+//
+//    
+    ContactInfoDao *tmpContactInfoDao = [[ContactInfoDao alloc]init];
+    if ([tmpContactInfoDao deleteAllContacts])//清空通讯录缓存
+    {
+        temp = @"清空通讯录缓存成功\n";
+        [strMessage appendString:temp];
+        [temp release];
+
+    }
+    else
+    {
+        temp = @"清空通讯录缓存失败\n";
+        [strMessage appendString:temp];
+        [temp release];
+
+    }
+    [tmpContactInfoDao release];
+    
+    
+    UIAlertView *alert = [[UIAlertView alloc]initWithTitle:@"提示信息" message:strMessage delegate:nil cancelButtonTitle:@"确认" otherButtonTitles:nil, nil];
+    
+//    [strMessage release];
+
+    [alert show];
+    [alert release];
 }
 
 

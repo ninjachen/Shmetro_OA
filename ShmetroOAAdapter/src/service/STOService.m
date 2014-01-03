@@ -75,8 +75,8 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
         id jsonObj = [respStr JSONValue];
         if ([type isEqualToString:@"多级工作联系单"]) {
             TodoInfoDao *todoInfoDao = [[TodoInfoDao alloc]init];
-              [todoInfoDao saveJsonItemToTodoList:jsonObj];
-              [todoInfoDao release];
+            [todoInfoDao saveJsonItemToTodoList:jsonObj];
+            [todoInfoDao release];
         }else if([type isEqualToString:@"新发文流程"]){
             WorkflowDao *workflowDao = [[WorkflowDao alloc]init];
             [workflowDao saveWorkflowlistFromJsonValue:jsonObj];
@@ -123,7 +123,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
     if (!error) {
         NSString *respStr = [[[NSString alloc]initWithData:[request responseData] encoding:NSUTF8StringEncoding] autorelease];
         id jsonObj = [respStr JSONValue];
-    
+        
         [dao saveWorkflowInfoFromJsonValue:jsonObj WithPid:pid];
     }
     
@@ -133,7 +133,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
     return attachFileList;
 }
 -(NSDictionary *)searchDocSendApproveInfoList:(NSString *)pid{
-     WFApprovedInfoDao *dao = [[WFApprovedInfoDao alloc]init];
+    WFApprovedInfoDao *dao = [[WFApprovedInfoDao alloc]init];
     ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:[ApiConfig getProcessdataAPIURLWithType:@"docSend" Pid:pid DataType:@"3"]];
     [request setRequestMethod:@"GET"];
     [request setTimeOutSeconds:60];
@@ -166,7 +166,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
             result = [[SystemContext singletonInstance]processHttpResponseCode:[jsonObj valueForKey:@"code"]];
         }
     }
-   
+    
     return result;
 }
 
@@ -192,7 +192,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
     AttachFileInfoDao *dao = [[AttachFileInfoDao alloc]init];
     NSArray *resp = nil;
     resp = [dao searchTodoAttachFileInfoList:fileGroupId];
-//    resp = [dao searchAttachFileInfoList:fileGroupId];
+    //    resp = [dao searchAttachFileInfoList:fileGroupId];
     [dao release];
     return resp;
 }
@@ -208,7 +208,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
     if (!error) {
         NSString *respStr = [[[NSString alloc]initWithData:[request responseData] encoding:NSUTF8StringEncoding] autorelease];
         id jsonObj = [respStr JSONValue];
-         NSString *attachFilePath = [self convertJsonItemToAttachFileDetailInfo:jsonObj];
+        NSString *attachFilePath = [self convertJsonItemToAttachFileDetailInfo:jsonObj];
         if (attachFilePath!=nil) {
             attachFilePath = [NSString stringWithFormat:@"%@&%@.%@",attachFilePath,attachFileInfo.fileName,attachFileInfo.fileExtName];
             NSLog(@"%@",attachFilePath);
@@ -233,7 +233,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
     if (todoInfo.uploadfilegroupid!=nil) {
         dataPara = [NSString stringWithFormat:@"<?xml version=\"1.0\" encoding=\"utf-8\"?><params><todoId>%@</todoId><data>{'choice':'2','suggest':'%@',attachId:'%@'}</data></params>",todoInfo.todoId,todoInfo.processText,todoInfo.uploadfilegroupid];
     }else{
-         dataPara = [NSString stringWithFormat:@"<?xml version=\"1.0\" encoding=\"utf-8\"?><params><todoId>%@</todoId><data>{'choice':'1','suggest':'%@'}</data></params>",todoInfo.todoId,todoInfo.processText];
+        dataPara = [NSString stringWithFormat:@"<?xml version=\"1.0\" encoding=\"utf-8\"?><params><todoId>%@</todoId><data>{'choice':'1','suggest':'%@'}</data></params>",todoInfo.todoId,todoInfo.processText];
     }
     
     [ApiConfig setHttpPostData:request Method:[ApiConfig getTodoSubmitMethod] DataParams:dataPara Key:[[[UserAccountContext singletonInstance] userAccountInfo] token]];
@@ -253,7 +253,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
     NSDictionary *resp = nil;
     NSDictionary* infoDict = [[NSBundle mainBundle] infoDictionary];
     NSString* versionNum = [infoDict objectForKey:@"CFBundleVersion"];
-//    NSString *appName = [infoDict objectForKey:@"CFBundleDisplayName"];
+    //    NSString *appName = [infoDict objectForKey:@"CFBundleDisplayName"];
     ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:[ApiConfig getVersionUpdateAPIUrl]];
     NSString *bodyString = [NSString stringWithFormat:@"deviceType=ios&currentVersion=%@",versionNum];
     NSMutableData *bodyData = [[[NSMutableData alloc]initWithData:[bodyString dataUsingEncoding:NSUTF8StringEncoding]] autorelease];
@@ -272,41 +272,41 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
 }
 #pragma mark - Private Methods Implement
 /**
-{
-    "description": "success!",
-    "params": {
-        "param": {
-            "occurTime": "2012-08-29 11:57:35",
-            "id": "C85FA1645C8351D1E0440018FE2DB9AD",
-            "app": "workflow",
-            "title": "ttttttttt",
-            "status": "0",
-            "data": {
-                "CINCIDENT": "13",
-                "STEPLABEL": "部门内部签发",
-                "PNAME": "多级工作联系单",
-                "CREATE_DEPTNAME": "信息管理中心",
-                "START_TIME": "2012-08-29 11:57:35",
-                "THEME": "ttttttttt",
-                "CNAME": "多级工作联系单",
-                "MAIN_UNIT": "纪委监察室",
-                "INITIATOR_NAME": "李名敏",
-                "CONTENT": "t",
-                "REPLY_DATE": "2012-08-03",
-                "TASKID": "0829122791f98397d10dfdc67b3b1f",
-                "ASSIGNEDTOUSER": "ST/G020001000502549",
-                "CONTENT_ATTACHMENT_ID": "{C78D5B46-2628-A4B3-A6F0-A8933CDB6468}",
-                "CONTACT_DATE": "2012-08-01",
-                "PINCIDENT": "13"
-            },
-            "removed": "0",
-            "type": "1",
-            "key": "0829122791f98397d10dfdc67b3b1f",
-            "loginName": "ST/G020001000502549"
-        }
-    },
-    "code": "100"
-}
+ {
+ "description": "success!",
+ "params": {
+ "param": {
+ "occurTime": "2012-08-29 11:57:35",
+ "id": "C85FA1645C8351D1E0440018FE2DB9AD",
+ "app": "workflow",
+ "title": "ttttttttt",
+ "status": "0",
+ "data": {
+ "CINCIDENT": "13",
+ "STEPLABEL": "部门内部签发",
+ "PNAME": "多级工作联系单",
+ "CREATE_DEPTNAME": "信息管理中心",
+ "START_TIME": "2012-08-29 11:57:35",
+ "THEME": "ttttttttt",
+ "CNAME": "多级工作联系单",
+ "MAIN_UNIT": "纪委监察室",
+ "INITIATOR_NAME": "李名敏",
+ "CONTENT": "t",
+ "REPLY_DATE": "2012-08-03",
+ "TASKID": "0829122791f98397d10dfdc67b3b1f",
+ "ASSIGNEDTOUSER": "ST/G020001000502549",
+ "CONTENT_ATTACHMENT_ID": "{C78D5B46-2628-A4B3-A6F0-A8933CDB6468}",
+ "CONTACT_DATE": "2012-08-01",
+ "PINCIDENT": "13"
+ },
+ "removed": "0",
+ "type": "1",
+ "key": "0829122791f98397d10dfdc67b3b1f",
+ "loginName": "ST/G020001000502549"
+ }
+ },
+ "code": "100"
+ }
  */
 -(void)convertJsonItemToTodoList:(SBJsonParser *)jsonObj{
     if (jsonObj!=nil&&[jsonObj valueForKey:@"code"]) {
@@ -319,6 +319,10 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
             id paraArr = [jsonObj valueForKey:@"params"];
             if (paraArr) {
                 if ([[paraArr class] isSubclassOfClass:[NSArray class]]) {
+                    //待办事项，Ninja
+                    TodoInfoDao *todoInfoDao = [[[TodoInfoDao alloc]init]autorelease];
+                    [todoInfoDao deleteAll];
+                    
                     if (paraArr!=nil&&[paraArr count]>0) {
                         TodoInfoDao *dao = [[TodoInfoDao alloc]init];
                         for (int i=0; i<[paraArr count]; i++) {
@@ -352,7 +356,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
                             }
                             if ([paramObj valueForKey:@"loginName"]) {
                                 todoInfo.loginName=[[[UserAccountContext singletonInstance]userAccountInfo]loginName];
-                               // todoInfo.loginName = [paramObj valueForKey:@"loginName"];
+                                // todoInfo.loginName = [paramObj valueForKey:@"loginName"];
                             }
                             if ([paramObj valueForKey:@"status"]) {
                                 todoInfo.status = [paramObj valueForKey:@"status"];
@@ -426,10 +430,10 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
     if (!error) {
         NSString *respStr = [[[NSString alloc]initWithData:[request responseData] encoding:NSUTF8StringEncoding] autorelease];
         id jsonObj = [respStr JSONValue];
-      //  DLog(@"%@",respStr);
+        //  DLog(@"%@",respStr);
         [self convertJsonItemToTodoDetail:jsonObj TodoId:todoId];
     }else{
-       
+        
     }
 }
 
@@ -522,7 +526,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
                 SBJsonParser *commentObj = [paramObj valueForKey:@"comment"];
                 if (commentObj!=nil) {
                     id applyApprovedInfoObj = [commentObj valueForKey:@"applyApprovedInfo"];
-                     NSMutableArray *applyInfoArr = [[[NSMutableArray alloc]init] autorelease];
+                    NSMutableArray *applyInfoArr = [[[NSMutableArray alloc]init] autorelease];
                     if ([[applyApprovedInfoObj class] isSubclassOfClass:[NSArray class]]) {
                         NSArray *applyObjArr = applyApprovedInfoObj;
                         if (applyObjArr!=nil&&[applyObjArr count]>0) {
@@ -654,9 +658,9 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
     if ([jsonObj valueForKey:@"C_ID"]) {
         appInfo.cId = [jsonObj valueForKey:@"C_ID"];
     }
-//    if ([jsonObj valueForKey:@"C_ID"]) {
-//        appInfo.todoId = [jsonObj valueForKey:@"C_ID"];
-//    }
+    //    if ([jsonObj valueForKey:@"C_ID"]) {
+    //        appInfo.todoId = [jsonObj valueForKey:@"C_ID"];
+    //    }
     appInfo.todoId = todoId;
     if ([jsonObj valueForKey:@"FILE_GROUP_ID"]) {
         appInfo.fileGroupId = [jsonObj valueForKey:@"FILE_GROUP_ID"];
@@ -747,10 +751,10 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
                             if ([fileObj valueForKey:@"removed"]) {
                                 fileInfo.removed = [fileObj valueForKey:@"removed"];
                             }
-               
-                                [dao insertTodo:fileInfo];
-      
-                          //  [dao insert:fileInfo];
+                            
+                            [dao insertTodo:fileInfo];
+                            
+                            //  [dao insert:fileInfo];
                         }
                         [dao release];
                     }
@@ -783,7 +787,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
                     if ([fileObj valueForKey:@"uploadDate"]) {
                         fileInfo.uploadDate = [fileObj valueForKey:@"uploadDate"];
                     }
-                   // fileInfo.groupId = groupId;
+                    // fileInfo.groupId = groupId;
                     if (groupId !=nil) {
                         fileInfo.groupId = groupId;
                     }else if([fileObj valueForKey:@"groupId"]){
@@ -815,8 +819,8 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
                     }
                     
                     [dao insertTodo:fileInfo];
-    
-                  //  [dao insert:fileInfo];
+                    
+                    //  [dao insert:fileInfo];
                     [dao release];
                 }
                 
@@ -880,7 +884,7 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
         [objectsArray release];
         [keysArray release];
         
-       
+        
     }
     return resp;
 }
@@ -909,17 +913,17 @@ static NSString *APPROVE_TYPE_BACK=@"BACK";
         return nil;
     }
     id paramsObj = [jsonObj valueForKey:@"params"];
-if([[paramsObj class] isSubclassOfClass:[NSArray class]]){
-    return nil;
-}else{
-    SBJsonParser *paramObj = [paramsObj valueForKey:@"param"];
-    NSArray *tempArray = [[NSArray alloc]initWithObjects:[paramObj valueForKey:@"appUrl"],[paramObj valueForKey:@"topVersion"], nil];
-    NSArray *keys = [[NSArray alloc]initWithObjects:@"appUrl",@"topVersion", nil];
-    NSDictionary *resultDic = [[[NSDictionary alloc]initWithObjects:tempArray forKeys:keys] autorelease];
-    [tempArray release];
-    [keys release];
-    return resultDic;
-}
+    if([[paramsObj class] isSubclassOfClass:[NSArray class]]){
+        return nil;
+    }else{
+        SBJsonParser *paramObj = [paramsObj valueForKey:@"param"];
+        NSArray *tempArray = [[NSArray alloc]initWithObjects:[paramObj valueForKey:@"appUrl"],[paramObj valueForKey:@"topVersion"], nil];
+        NSArray *keys = [[NSArray alloc]initWithObjects:@"appUrl",@"topVersion", nil];
+        NSDictionary *resultDic = [[[NSDictionary alloc]initWithObjects:tempArray forKeys:keys] autorelease];
+        [tempArray release];
+        [keys release];
+        return resultDic;
+    }
 }
 
 //{
@@ -984,7 +988,7 @@ if([[paramsObj class] isSubclassOfClass:[NSArray class]]){
     NSArray *meetingRoomInfos = [meetingDao queryMeetingRoomByOrg:orgId];
     [meetingDao release];
     return meetingRoomInfos;
-
+    
 }
 
 -(void)refreshMeetingListFromStartDate:(NSString *)startdate ToEndDate:(NSString *)enddate{
@@ -997,7 +1001,7 @@ if([[paramsObj class] isSubclassOfClass:[NSArray class]]){
     if (!error) {
         NSString *respStr = [[[NSString alloc]initWithData:[request responseData] encoding:NSUTF8StringEncoding] autorelease];
         id jsonObj = [respStr JSONValue];
-       [meetingDao saveMeetinglistFromJsonValue:jsonObj];
+        [meetingDao saveMeetinglistFromJsonValue:jsonObj];
         
     }
     [meetingDao release];
@@ -1084,7 +1088,7 @@ if([[paramsObj class] isSubclassOfClass:[NSArray class]]){
         NSString *respStr = [[[NSString alloc]initWithData:[request responseData] encoding:NSUTF8StringEncoding] autorelease];
         id jsonObj = [respStr JSONValue];
         [contactInfoDao saveContactFromJsonValue:jsonObj clearContacts:YES];
-
+        
     }
     NSArray *contacts = [contactInfoDao queryContactByDept:deptName];
     [contactInfoDao release];
@@ -1176,7 +1180,7 @@ if([[paramsObj class] isSubclassOfClass:[NSArray class]]){
     UserInfoDao *userInfoDao = [[UserInfoDao alloc]init];
     NSString *loginName = [[[UserAccountContext singletonInstance]userAccountInfo]loginName];
     loginName = [loginName substringToIndex:12];
-   ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:[ApiConfig getUserInfoAPIUrl:loginName]];
+    ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:[ApiConfig getUserInfoAPIUrl:loginName]];
     [request setRequestMethod:@"GET"];
     [request setTimeOutSeconds:60];
     [request startSynchronous];
@@ -1202,8 +1206,14 @@ if([[paramsObj class] isSubclassOfClass:[NSArray class]]){
     NSError *error = [request error];
     if (!error) {
         NSString *respStr = [[[NSString alloc]initWithData:[request responseData] encoding:NSUTF8StringEncoding] autorelease];
+        
+        //每次获得消息内容时,清空本地缓存
         id jsonObj = [respStr JSONValue];
+        //add by Ninja
+        [dao deleteAllMessages];
         [dao saveMessagelistFromJsonValue:jsonObj];
+        
+        
     }
     
     NSMutableArray *messages = [dao queryAllMessagelList];
@@ -1212,7 +1222,7 @@ if([[paramsObj class] isSubclassOfClass:[NSArray class]]){
 }
 
 -(MessageDetailInfo *)getMessageDetail:(NSString*)mid App:(NSString *)appName{
-     MessageDao *dao = [[MessageDao alloc]init];
+    MessageDao *dao = [[MessageDao alloc]init];
     ASIHTTPRequest *request = [ASIHTTPRequest requestWithURL:[ApiConfig getMessageDetailById:mid App:appName]];
     [request setRequestMethod:@"GET"];
     [request setTimeOutSeconds:60];
