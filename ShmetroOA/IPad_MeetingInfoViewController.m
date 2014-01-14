@@ -905,7 +905,7 @@
             if (self.companyPopover==nil) {
                 
                 UIViewController *companyViewController = [[UIViewController alloc] init];
-                [companyViewController.view setBackgroundColor:[UIColor blackColor]];
+//                [companyViewController.view setBackgroundColor:[UIColor blackColor]];
                 [companyViewController.view addSubview:self.companyPickView];
                 
                 UIButton *btnOK = [UIButton buttonWithType:UIButtonTypeRoundedRect];

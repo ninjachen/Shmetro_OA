@@ -116,7 +116,8 @@
     }
     if (self.deptArr!=nil&&[self.deptArr count]>0) {
         UIViewController *sortViewController = [[[UIViewController alloc] init] autorelease];
-        [sortViewController.view setBackgroundColor:[UIColor blackColor]];
+        //ios 7 bug
+//        [sortViewController.view setBackgroundColor:[UIColor blackColor]];
         self.sortPickerView = [[[UIPickerView alloc] initWithFrame:CGRectMake(0, 0, 320, 216)] autorelease];
         [sortViewController.view addSubview:sortPickerView];
         
