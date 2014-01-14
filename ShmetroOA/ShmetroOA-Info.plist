@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>申通OAv2</string>
+	<string>申通OAv2.1</string>
 	<key>CFBundleExecutable</key>
 	<string>${EXECUTABLE_NAME}</string>
 	<key>CFBundleIconFiles</key>
@@ -41,7 +41,7 @@
 		</dict>
 	</dict>
 	<key>CFBundleIdentifier</key>
-	<string>mobi.w3studio.apps.ios.shmetrooa</string>
+	<string>com.wondersgroup.ShmetroOA</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
